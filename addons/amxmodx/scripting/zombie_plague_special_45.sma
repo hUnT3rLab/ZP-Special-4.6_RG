@@ -775,6 +775,7 @@ enum { // Forward Enum
 	GAME_MODE_SELECTED,
 	PLAYER_SPAWN_POST,
 	SPAWN_HUMANIZED_POST,
+	SPAWN_INFECTED_POST,
 	FROZEN_PRE,
 	FROZEN_POST,
 	BURN_PRE,
@@ -2129,7 +2130,6 @@ public plugin_init() {
 	g_forwards[USER_LAST_HUMAN] = CreateMultiForward("zp_user_last_human", ET_IGNORE, FP_CELL)
 	g_forwards[GAME_MODE_SELECTED] = CreateMultiForward("zp_game_mode_selected", ET_IGNORE, FP_CELL, FP_CELL)
 	g_forwards[PLAYER_SPAWN_POST] = CreateMultiForward("zp_player_spawn_post", ET_IGNORE, FP_CELL)
-	g_forwards[SPAWN_HUMANIZED_POST] = CreateMultiForward("zp_spawn_humanized_post", ET_IGNORE, FP_CELL)
 
 	// New Forwards
 	g_forwards[FROZEN_PRE] = CreateMultiForward("zp_user_frozen_pre", ET_CONTINUE, FP_CELL)
@@ -2166,6 +2166,10 @@ public plugin_init() {
 	g_forwards[PLAY_SOUND] = CreateMultiForward("zp_fw_sound_play", ET_CONTINUE, FP_STRING, FP_CELL);
 	g_forwards[STOP_SOUND] = CreateMultiForward("zp_fw_sound_stop", ET_CONTINUE);
 	g_forwards[DEPLOY_WEAPON] = CreateMultiForward("zp_fw_deploy_weapon", ET_CONTINUE, FP_CELL, FP_CELL);
+
+	// New forwards (4.6 or Higher)
+	g_forwards[SPAWN_HUMANIZED_POST] = CreateMultiForward("zp_spawn_humanized_post", ET_IGNORE, FP_CELL)
+	g_forwards[SPAWN_INFECTED_POST] = CreateMultiForward("zp_spawn_infected_post", ET_IGNORE, FP_CELL)
 
 	load_spawns() // Collect random spawn points
 
@@ -2205,50 +2209,51 @@ public plugin_cfg() {
 public plugin_end()
 {
 	// Free the Memory.
-    DestroyForward(g_forwards[ROUND_START])
-    DestroyForward(g_forwards[ROUND_START_PRE])
-    DestroyForward(g_forwards[ROUND_END])
-    DestroyForward(g_forwards[INFECTED_PRE])
-    DestroyForward(g_forwards[INFECTED_POST])
-    DestroyForward(g_forwards[HUMANIZED_PRE])
-    DestroyForward(g_forwards[HUMANIZED_POST])
-    DestroyForward(g_forwards[INFECT_ATTEMP])
-    DestroyForward(g_forwards[HUMANIZE_ATTEMP])
-    DestroyForward(g_forwards[ITEM_SELECTED_POST])
-    DestroyForward(g_forwards[USER_UNFROZEN])
-    DestroyForward(g_forwards[USER_LAST_ZOMBIE])
-    DestroyForward(g_forwards[USER_LAST_HUMAN])
-    DestroyForward(g_forwards[GAME_MODE_SELECTED])
-    DestroyForward(g_forwards[PLAYER_SPAWN_POST])
-    DestroyForward(g_forwards[SPAWN_HUMANIZED_POST])
-    DestroyForward(g_forwards[FROZEN_PRE])
-    DestroyForward(g_forwards[FROZEN_POST])
-    DestroyForward(g_forwards[BURN_PRE])
-    DestroyForward(g_forwards[BURN_POST])
-    DestroyForward(g_forwards[ITEM_SELECTED_PRE])
-    DestroyForward(g_forwards[CLASS_CHOOSED_PRE])
-    DestroyForward(g_forwards[CLASS_CHOOSED_POST])
-    DestroyForward(g_forwards[RESET_RENDERING_PRE])
-    DestroyForward(g_forwards[RESET_RENDERING_POST])
-    DestroyForward(g_forwards[MODEL_CHANGE_PRE])
-    DestroyForward(g_forwards[MODEL_CHANGE_POST])
-    DestroyForward(g_forwards[HM_SP_CHOSSED_PRE])
-    DestroyForward(g_forwards[HM_SP_CHOSSED_POST])
-    DestroyForward(g_forwards[ZM_SP_CHOSSED_PRE])
-    DestroyForward(g_forwards[ZM_SP_CHOSSED_POST])
-    DestroyForward(g_forwards[GM_SELECTED_PRE])
-    DestroyForward(g_forwards[INFECTED_BY_BOMB_PRE])
-    DestroyForward(g_forwards[INFECTED_BY_BOMB_POST])
-    DestroyForward(g_forwards[UNSTUCK_PRE])
-    DestroyForward(g_forwards[UNSTUCK_POST])
-    DestroyForward(g_forwards[WEAPON_SELECTED_PRE])
-    DestroyForward(g_forwards[WEAPON_SELECTED_POST])
-    DestroyForward(g_forwards[H_CLASS_CHOOSED_PRE])
-    DestroyForward(g_forwards[H_CLASS_CHOOSED_POST])
-    DestroyForward(g_forwards[PLAYER_SHOW_HUD])
-    DestroyForward(g_forwards[PLAY_SOUND])
-    DestroyForward(g_forwards[STOP_SOUND])
-    DestroyForward(g_forwards[DEPLOY_WEAPON])
+	DestroyForward(g_forwards[ROUND_START])
+	DestroyForward(g_forwards[ROUND_START_PRE])
+	DestroyForward(g_forwards[ROUND_END])
+	DestroyForward(g_forwards[INFECTED_PRE])
+	DestroyForward(g_forwards[INFECTED_POST])
+	DestroyForward(g_forwards[HUMANIZED_PRE])
+	DestroyForward(g_forwards[HUMANIZED_POST])
+	DestroyForward(g_forwards[INFECT_ATTEMP])
+	DestroyForward(g_forwards[HUMANIZE_ATTEMP])
+	DestroyForward(g_forwards[ITEM_SELECTED_POST])
+	DestroyForward(g_forwards[USER_UNFROZEN])
+	DestroyForward(g_forwards[USER_LAST_ZOMBIE])
+	DestroyForward(g_forwards[USER_LAST_HUMAN])
+	DestroyForward(g_forwards[GAME_MODE_SELECTED])
+	DestroyForward(g_forwards[PLAYER_SPAWN_POST])
+	DestroyForward(g_forwards[SPAWN_HUMANIZED_POST])
+	DestroyForward(g_forwards[SPAWN_INFECTED_POST])
+	DestroyForward(g_forwards[FROZEN_PRE])
+	DestroyForward(g_forwards[FROZEN_POST])
+	DestroyForward(g_forwards[BURN_PRE])
+	DestroyForward(g_forwards[BURN_POST])
+	DestroyForward(g_forwards[ITEM_SELECTED_PRE])
+	DestroyForward(g_forwards[CLASS_CHOOSED_PRE])
+	DestroyForward(g_forwards[CLASS_CHOOSED_POST])
+	DestroyForward(g_forwards[RESET_RENDERING_PRE])
+	DestroyForward(g_forwards[RESET_RENDERING_POST])
+	DestroyForward(g_forwards[MODEL_CHANGE_PRE])
+	DestroyForward(g_forwards[MODEL_CHANGE_POST])
+	DestroyForward(g_forwards[HM_SP_CHOSSED_PRE])
+	DestroyForward(g_forwards[HM_SP_CHOSSED_POST])
+	DestroyForward(g_forwards[ZM_SP_CHOSSED_PRE])
+	DestroyForward(g_forwards[ZM_SP_CHOSSED_POST])
+	DestroyForward(g_forwards[GM_SELECTED_PRE])
+	DestroyForward(g_forwards[INFECTED_BY_BOMB_PRE])
+	DestroyForward(g_forwards[INFECTED_BY_BOMB_POST])
+	DestroyForward(g_forwards[UNSTUCK_PRE])
+	DestroyForward(g_forwards[UNSTUCK_POST])
+	DestroyForward(g_forwards[WEAPON_SELECTED_PRE])
+	DestroyForward(g_forwards[WEAPON_SELECTED_POST])
+	DestroyForward(g_forwards[H_CLASS_CHOOSED_PRE])
+	DestroyForward(g_forwards[H_CLASS_CHOOSED_POST])
+	DestroyForward(g_forwards[PLAYER_SHOW_HUD])
+	DestroyForward(g_forwards[PLAY_SOUND])
+	DestroyForward(g_forwards[STOP_SOUND])
+	DestroyForward(g_forwards[DEPLOY_WEAPON])
 }
 
 /*================================================================================
@@ -2440,9 +2445,9 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 		}
 		else reset_vars(id, 0); // Reset player vars
 
-		if(g_zombie[id]) { // Execute our player spawn post & spawn humanized post forward
+		if(g_zombie[id]) { // Execute our player spawn post forward
 			ExecuteForward(g_forwards[PLAYER_SPAWN_POST], g_fwDummyResult, id);
-			ExecuteForward(g_forwards[SPAWN_HUMANIZED_POST], g_fwDummyResult, id);
+			ExecuteForward(g_forwards[SPAWN_INFECTED_POST], g_fwDummyResult, id);
 			return HC_CONTINUE;
 		}
 	}
@@ -6305,6 +6310,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 	rg_reset_maxspeed(id) // Set class speed
 
 	ExecuteForward(g_forwards[INFECTED_POST], g_fwDummyResult, id, infector, classid) // Post user infect forward
+	ExecuteForward(g_forwards[SPAWN_INFECTED_POST], g_fwDummyResult, id);
 	fnCheckLastZombie() // Last Zombie Check
 }
 humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, turn into a survivor, silent mode)
@@ -11847,7 +11853,7 @@ stock rg_zp_set_user_zoom(id, type, instantly) {
 
 stock rg_zp_give_bpammo(id, weaponid)
 {
-    rg_set_user_bpammo(id, WeaponIdType:weaponid, MAXBPAMMO[weaponid])
+	rg_set_user_bpammo(id, WeaponIdType:weaponid, MAXBPAMMO[weaponid])
 }
 
 // Set an entity's key value (from fakemeta_util)
@@ -11900,7 +11906,7 @@ stock fm_find_ent_by_owner(entity, const classname[], owner) { // Find entity by
 stock rg_zp_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
 stock rg_zp_get_user_health(id)
 {
-    return floatround(get_entvar(id, var_health))
+	return floatround(get_entvar(id, var_health))
 }
 
 stock load_spawns() { // Collect random spawn points
