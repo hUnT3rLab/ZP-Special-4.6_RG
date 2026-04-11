@@ -774,6 +774,7 @@ enum { // Forward Enum
 	USER_LAST_HUMAN,
 	GAME_MODE_SELECTED,
 	PLAYER_SPAWN_POST,
+	SPAWN_HUMANIZED_POST,
 	FROZEN_PRE,
 	FROZEN_POST,
 	BURN_PRE,
@@ -1442,8 +1443,8 @@ public plugin_precache() {
 	if(g_ambience_fog) { // Weather/ambience effects
 		ent = rg_create_entity("env_fog")
 		if(is_entity(ent)) {
-			fm_set_kvd(ent, "density", g_fog_density, "env_fog")
-			fm_set_kvd(ent, "rendercolor", g_fog_color, "env_fog")
+			rg_zp_set_kvd(ent, "density", g_fog_density, "env_fog")
+			rg_zp_set_kvd(ent, "rendercolor", g_fog_color, "env_fog")
 		}
 	}
 	if(g_ambience_rain) rg_create_entity("env_rain")
@@ -2128,6 +2129,7 @@ public plugin_init() {
 	g_forwards[USER_LAST_HUMAN] = CreateMultiForward("zp_user_last_human", ET_IGNORE, FP_CELL)
 	g_forwards[GAME_MODE_SELECTED] = CreateMultiForward("zp_game_mode_selected", ET_IGNORE, FP_CELL, FP_CELL)
 	g_forwards[PLAYER_SPAWN_POST] = CreateMultiForward("zp_player_spawn_post", ET_IGNORE, FP_CELL)
+	g_forwards[SPAWN_HUMANIZED_POST] = CreateMultiForward("zp_spawn_humanized_post", ET_IGNORE, FP_CELL)
 
 	// New Forwards
 	g_forwards[FROZEN_PRE] = CreateMultiForward("zp_user_frozen_pre", ET_CONTINUE, FP_CELL)
@@ -2198,6 +2200,55 @@ public plugin_cfg() {
 	set_task(0.5, "logevent_round_start")
 
 	set_member_game(m_GameDesc, g_modname)
+}
+
+public plugin_end()
+{
+	// Free the Memory.
+    DestroyForward(g_forwards[ROUND_START])
+    DestroyForward(g_forwards[ROUND_START_PRE])
+    DestroyForward(g_forwards[ROUND_END])
+    DestroyForward(g_forwards[INFECTED_PRE])
+    DestroyForward(g_forwards[INFECTED_POST])
+    DestroyForward(g_forwards[HUMANIZED_PRE])
+    DestroyForward(g_forwards[HUMANIZED_POST])
+    DestroyForward(g_forwards[INFECT_ATTEMP])
+    DestroyForward(g_forwards[HUMANIZE_ATTEMP])
+    DestroyForward(g_forwards[ITEM_SELECTED_POST])
+    DestroyForward(g_forwards[USER_UNFROZEN])
+    DestroyForward(g_forwards[USER_LAST_ZOMBIE])
+    DestroyForward(g_forwards[USER_LAST_HUMAN])
+    DestroyForward(g_forwards[GAME_MODE_SELECTED])
+    DestroyForward(g_forwards[PLAYER_SPAWN_POST])
+    DestroyForward(g_forwards[SPAWN_HUMANIZED_POST])
+    DestroyForward(g_forwards[FROZEN_PRE])
+    DestroyForward(g_forwards[FROZEN_POST])
+    DestroyForward(g_forwards[BURN_PRE])
+    DestroyForward(g_forwards[BURN_POST])
+    DestroyForward(g_forwards[ITEM_SELECTED_PRE])
+    DestroyForward(g_forwards[CLASS_CHOOSED_PRE])
+    DestroyForward(g_forwards[CLASS_CHOOSED_POST])
+    DestroyForward(g_forwards[RESET_RENDERING_PRE])
+    DestroyForward(g_forwards[RESET_RENDERING_POST])
+    DestroyForward(g_forwards[MODEL_CHANGE_PRE])
+    DestroyForward(g_forwards[MODEL_CHANGE_POST])
+    DestroyForward(g_forwards[HM_SP_CHOSSED_PRE])
+    DestroyForward(g_forwards[HM_SP_CHOSSED_POST])
+    DestroyForward(g_forwards[ZM_SP_CHOSSED_PRE])
+    DestroyForward(g_forwards[ZM_SP_CHOSSED_POST])
+    DestroyForward(g_forwards[GM_SELECTED_PRE])
+    DestroyForward(g_forwards[INFECTED_BY_BOMB_PRE])
+    DestroyForward(g_forwards[INFECTED_BY_BOMB_POST])
+    DestroyForward(g_forwards[UNSTUCK_PRE])
+    DestroyForward(g_forwards[UNSTUCK_POST])
+    DestroyForward(g_forwards[WEAPON_SELECTED_PRE])
+    DestroyForward(g_forwards[WEAPON_SELECTED_POST])
+    DestroyForward(g_forwards[H_CLASS_CHOOSED_PRE])
+    DestroyForward(g_forwards[H_CLASS_CHOOSED_POST])
+    DestroyForward(g_forwards[PLAYER_SHOW_HUD])
+    DestroyForward(g_forwards[PLAY_SOUND])
+    DestroyForward(g_forwards[STOP_SOUND])
+    DestroyForward(g_forwards[DEPLOY_WEAPON])
 }
 
 /*================================================================================
@@ -2383,14 +2434,15 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 			reset_vars(id, 0) // Reset player vars
 			if(g_currentmode == MODE_LNJ && get_pcvar_num(cvar_lnjrespnem)) { // Respawn as a nemesis on LNJ round ?
 				zombieme(id, 0, NEMESIS, 0, 0) // Make him nemesis right away
-				fm_set_user_health(id, floatround(get_pcvar_float(cvar_lnjnemhpmulti) * fm_get_user_health(id))) // Apply the nemesis health multiplier
+				rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_lnjnemhpmulti) * rg_zp_get_user_health(id))) // Apply the nemesis health multiplier
 			}
 			else zombieme(id, 0, 0, 0, 0); // Make him zombie right away
 		}
 		else reset_vars(id, 0); // Reset player vars
 
-		if(g_zombie[id]) { // Execute our player spawn post forward
+		if(g_zombie[id]) { // Execute our player spawn post & spawn humanized post forward
 			ExecuteForward(g_forwards[PLAYER_SPAWN_POST], g_fwDummyResult, id);
+			ExecuteForward(g_forwards[SPAWN_HUMANIZED_POST], g_fwDummyResult, id);
 			return HC_CONTINUE;
 		}
 	}
@@ -2402,7 +2454,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 		set_hclass_attributes(id)
 	}
 	else {
-		fm_set_user_health(id, get_pcvar_num(cvar_hm_health[g_hm_special[id]]))
+		rg_zp_set_user_health(id, get_pcvar_num(cvar_hm_health[g_hm_special[id]]))
 		set_entvar(id, var_gravity, get_pcvar_float(cvar_hmgravity[g_hm_special[id]]))
 		g_infammo[id] = get_pcvar_num(cvar_hm_infammo[0])
 
@@ -2467,7 +2519,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 
 	if(g_currentmode == MODE_LNJ && get_pcvar_num(cvar_lnjrespsurv)) { // Respawn as a survivor on LNJ round ?
 		humanme(id, SURVIVOR, 0, 0) // Make him survivor right away
-		fm_set_user_health(id, floatround(get_pcvar_float(cvar_lnjsurvhpmulti) * fm_get_user_health(id))) // Apply the survivor health multiplier
+		rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_lnjsurvhpmulti) * rg_zp_get_user_health(id))) // Apply the survivor health multiplier
 	}
 
 	// Replace weapon models (bugfix)
@@ -2480,6 +2532,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 
 	fnCheckLastZombie() // Last Zombie Check
 	ExecuteForward(g_forwards[PLAYER_SPAWN_POST], g_fwDummyResult, id); // Execute our player spawn post forward
+	ExecuteForward(g_forwards[SPAWN_HUMANIZED_POST], g_fwDummyResult, id); // Execute our spawn humanized post forward
 
 	return HC_CONTINUE;
 }
@@ -2663,7 +2716,7 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type) { /
 	if(!is_user_valid_connected(attacker) && is_entity(attacker)) {
 		static classname[32];
 		get_entvar(attacker, var_classname, classname, charsmax(classname));
-		if(damage >= fm_get_user_health(victim) && equal(classname, "trigger_hurt")) {
+		if(damage >= rg_zp_get_user_health(victim) && equal(classname, "trigger_hurt")) {
 			if(g_endround)
 				return HC_SUPERCEDE;
 
@@ -2708,8 +2761,8 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type) { /
 		}
 
 		if(g_zm_special[victim] == PREDATOR) {
-			if(get_pcvar_num(cvar_zm_glow[PREDATOR])) fm_set_rendering(victim, kRenderFxGlowShell, 250, 250, 250, kRenderNormal, 15)
-			else fm_set_rendering(victim, kRenderFxGlowShell, 0, 0, 0, kRenderNormal, 15)
+			if(get_pcvar_num(cvar_zm_glow[PREDATOR])) rg_zp_set_rendering(victim, kRenderFxGlowShell, 250, 250, 250, kRenderNormal, 15)
+			else rg_zp_set_rendering(victim, kRenderFxGlowShell, 0, 0, 0, kRenderNormal, 15)
 			set_task(1.0, "turn_invisible", victim)
 		}
 
@@ -2734,8 +2787,8 @@ public fw_TakeDamage(victim, inflictor, attacker, Float:damage, damage_type) { /
 		return HC_CONTINUE;
 
 	if(g_hm_special[victim] == SPY) {
-		if(get_pcvar_num(cvar_hm_glow[SPY])) fm_set_rendering(victim, kRenderFxGlowShell, get_pcvar_num(cvar_hm_red[SPY]), get_pcvar_num(cvar_hm_green[SPY]), get_pcvar_num(cvar_hm_blue[SPY]), kRenderNormal, 15)
-		else fm_set_rendering(victim, kRenderFxGlowShell, 0, 0, 0, kRenderNormal, 15)
+		if(get_pcvar_num(cvar_hm_glow[SPY])) rg_zp_set_rendering(victim, kRenderFxGlowShell, get_pcvar_num(cvar_hm_red[SPY]), get_pcvar_num(cvar_hm_green[SPY]), get_pcvar_num(cvar_hm_blue[SPY]), kRenderNormal, 15)
+		else rg_zp_set_rendering(victim, kRenderFxGlowShell, 0, 0, 0, kRenderNormal, 15)
 		set_task(1.0, "turn_invisible", victim)
 	}
 
@@ -3096,7 +3149,7 @@ public fw_SetModel(entity, const model[]) { // Forward Set Model
 	if(g_zombie[owner]) { // Get whether grenade's owner is a zombie
 		if(model[9] == 'h' && model[10] == 'e' && ((get_pcvar_num(cvar_extrainfbomb) && !g_escape_map) || (get_pcvar_num(cvar_extrainfbomb_ze) && g_escape_map) || g_zm_special[owner] == BOMBARDIER)) { // Infection Bomb
 			// Give it a glow
-			fm_set_rendering(entity, kRenderFxGlowShell, grenade_rgb[INFECTION_BOMB][0], grenade_rgb[INFECTION_BOMB][1], grenade_rgb[INFECTION_BOMB][2], kRenderNormal, 16);
+			rg_zp_set_rendering(entity, kRenderFxGlowShell, grenade_rgb[INFECTION_BOMB][0], grenade_rgb[INFECTION_BOMB][1], grenade_rgb[INFECTION_BOMB][2], kRenderNormal, 16);
 			entity_set_model(entity, g_zm_special[owner] == BOMBARDIER ? model_grenade_bombardier[WORLD_MODEL] : model_grenade_infect[WORLD_MODEL])
 
 			set_trail(entity, grenade_rgb[INFECTION_BOMB][0], grenade_rgb[INFECTION_BOMB][1], grenade_rgb[INFECTION_BOMB][2], INFECTION_BOMB)
@@ -3108,7 +3161,7 @@ public fw_SetModel(entity, const model[]) { // Forward Set Model
 	}
 	else if(model[9] == 'h' && model[10] == 'e' && get_pcvar_num(cvar_firegrenades)) { // Napalm Grenade
 		// Give it a glow
-		fm_set_rendering(entity, kRenderFxGlowShell, grenade_rgb[FIRE][0], grenade_rgb[FIRE][1], grenade_rgb[FIRE][2], kRenderNormal, 16);
+		rg_zp_set_rendering(entity, kRenderFxGlowShell, grenade_rgb[FIRE][0], grenade_rgb[FIRE][1], grenade_rgb[FIRE][2], kRenderNormal, 16);
 		entity_set_model(entity, model_grenade_fire[WORLD_MODEL])
 
 		set_trail(entity, grenade_rgb[FIRE][0], grenade_rgb[FIRE][1], grenade_rgb[FIRE][2], FIRE)
@@ -3119,7 +3172,7 @@ public fw_SetModel(entity, const model[]) { // Forward Set Model
 	}
 	else if(model[9] == 'f' && model[10] == 'l' && get_pcvar_num(cvar_frostgrenades)) { // Frost Grenade
 		// Give it a glow
-		fm_set_rendering(entity, kRenderFxGlowShell, grenade_rgb[FROST][0], grenade_rgb[FROST][1], grenade_rgb[FROST][2], kRenderNormal, 16);
+		rg_zp_set_rendering(entity, kRenderFxGlowShell, grenade_rgb[FROST][0], grenade_rgb[FROST][1], grenade_rgb[FROST][2], kRenderNormal, 16);
 		entity_set_model(entity, model_grenade_frost[WORLD_MODEL])
 
 		set_trail(entity, grenade_rgb[FROST][0], grenade_rgb[FROST][1], grenade_rgb[FROST][2], FROST)
@@ -3155,7 +3208,7 @@ public fw_SetModel(entity, const model[]) { // Forward Set Model
 		}
 
 		// Give it a glow
-		fm_set_rendering(entity, kRenderFxGlowShell, rgb[0], rgb[1], rgb[2], kRenderNormal, 16);
+		rg_zp_set_rendering(entity, kRenderFxGlowShell, rgb[0], rgb[1], rgb[2], kRenderNormal, 16);
 		entity_set_model(entity, model_grenade_flare[WORLD_MODEL])
 
 		set_trail(entity, rgb[0], rgb[1], rgb[2], FLARE)
@@ -3221,7 +3274,7 @@ public fw_ThinkGrenade(entity) {
 			set_entvar(entity, var_flSwimTime, --duration)
 			set_entvar(entity, var_dmgtime, current_time + 2.0)
 		}
-		else if((get_entvar(entity, var_flags) & FL_ONGROUND) && fm_get_speed(entity) < 10) { // Light up when it's stopped on ground
+		else if((get_entvar(entity, var_flags) & FL_ONGROUND) && rg_zp_get_speed(entity) < 10) { // Light up when it's stopped on ground
 			static sound[64] // Flare sound
 			ArrayGetString(ar_sound[17], random_num(0, ArraySize(ar_sound[17]) - 1), sound, charsmax(sound))
 			emit_sound(entity, CHAN_WEAPON, sound, 1.0, ATTN_NORM, 0, PITCH_NORM)
@@ -3365,7 +3418,7 @@ public fw_PlayerPreThink(id) { // Forward Player PreThink
 	// Not doing a longjump (don't perform check for bots, they leap automatically)
 	if(!g_isbot[id] && !(get_entvar(id, var_button) & (IN_JUMP | IN_DUCK) == (IN_JUMP | IN_DUCK))) return;
 
-	if(!(get_entvar(id, var_flags) & FL_ONGROUND) || fm_get_speed(id) < 80) return; // Not on ground or not enough speed
+	if(!(get_entvar(id, var_flags) & FL_ONGROUND) || rg_zp_get_speed(id) < 80) return; // Not on ground or not enough speed
 
 	static Float:velocity[3]
 	if(g_zombie[id]) {
@@ -5209,7 +5262,7 @@ public message_money(msg_id, msg_dest, msg_entity) { // Take off player's money
 public message_health(msg_id, msg_dest, msg_entity) { // Fix for the HL engine bug when HP is multiples of 256
 	static health; health = get_msg_arg_int(1) // Get player's health
 	if(health < 256) return; // Don't bother
-	if(health % 256 == 0) fm_set_user_health(msg_entity, fm_get_user_health(msg_entity) + 1); // Check if we need to fix it
+	if(health % 256 == 0) rg_zp_set_user_health(msg_entity, rg_zp_get_user_health(msg_entity) + 1); // Check if we need to fix it
 	set_msg_arg_int(1, get_msg_argtype(1), 255) // HUD can only show as much as 255 hp
 }
 public message_armor(msg_id, msg_dest, msg_entity) { // Fix Hud when armor is multiples of 999
@@ -5458,7 +5511,7 @@ start_plague_mode(id, mode) { // Start plague mode
 				humanme(id, SURVIVOR, 0, 0) // If not, turn him into one
 				iSurvivors++
 
-				fm_set_user_health(id, floatround(get_pcvar_float(cvar_plaguesurvhpmulti) * fm_get_user_health(id))) // Apply survivor health multiplier
+				rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_plaguesurvhpmulti) * rg_zp_get_user_health(id))) // Apply survivor health multiplier
 			}
 		}
 
@@ -5481,7 +5534,7 @@ start_plague_mode(id, mode) { // Start plague mode
 					else do_random_spawn(id, 1) // regular spawn
 				}
 				iNemesis++
-				fm_set_user_health(id, floatround(get_pcvar_float(cvar_plaguenemhpmulti) * fm_get_user_health(id))) // Apply nemesis health multiplier
+				rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_plaguenemhpmulti) * rg_zp_get_user_health(id))) // Apply nemesis health multiplier
 			}
 		}
 
@@ -5644,7 +5697,7 @@ start_lnj_mode(id, mode) { // Start LNJ mode
 			if(random_num(0, 1)) { // Random chance
 				// Turn into a Nemesis
 				zombieme(id, 0, NEMESIS, 0, 0)
-				fm_set_user_health(id, floatround(get_pcvar_float(cvar_lnjnemhpmulti) * fm_get_user_health(id)))
+				rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_lnjnemhpmulti) * rg_zp_get_user_health(id)))
 
 				if(g_escape_map) { // Escape Map Support
 					if(get_pcvar_num(cvar_randspawn)) do_random_spawn(id) // random spawn (including CSDM)
@@ -5658,7 +5711,7 @@ start_lnj_mode(id, mode) { // Start LNJ mode
 		for(id = 1; id <= MaxClients; id++) { // Turn the remaining players into survivors
 			if(!g_isalive[id] || g_zm_special[id] == NEMESIS) continue; // Only those of them who arent nemesis
 			humanme(id, SURVIVOR, 0, 0) // Turn into a Survivor
-			fm_set_user_health(id, floatround(get_pcvar_float(cvar_lnjsurvhpmulti) * fm_get_user_health(id)))
+			rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_lnjsurvhpmulti) * rg_zp_get_user_health(id)))
 		}
 
 		// Play armageddon sound
@@ -6074,7 +6127,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 		// Reward frags, deaths, health, and ammo packs
 		UpdateFrags(infector, id, get_pcvar_num(cvar_fragsinfect), 1, 1)
 		g_ammopacks[infector] += get_pcvar_num(cvar_ammoinfect)
-		fm_set_user_health(infector, fm_get_user_health(infector) + get_pcvar_num(cvar_zm_basehp[0]))
+		rg_zp_set_user_health(infector, rg_zp_get_user_health(infector) + get_pcvar_num(cvar_zm_basehp[0]))
 	}
 
 	// Cache speed, and name for player's class
@@ -6097,8 +6150,8 @@ zombieme(id, infector, classid, silentmode, rewards) {
 
 			static special_id; special_id = g_zm_special[id]-MAX_SPECIALS_ZOMBIES
 
-			if(ArrayGetCell(g_zm_sp_health, special_id) == 0) fm_set_user_health(id, get_pcvar_num(cvar_zm_health[0]) * fnGetAlive()) // Set Health [0 = auto]
-			else fm_set_user_health(id, ArrayGetCell(g_zm_sp_health, special_id))
+			if(ArrayGetCell(g_zm_sp_health, special_id) == 0) rg_zp_set_user_health(id, get_pcvar_num(cvar_zm_health[0]) * fnGetAlive()) // Set Health [0 = auto]
+			else rg_zp_set_user_health(id, ArrayGetCell(g_zm_sp_health, special_id))
 
 			// Set gravity, unless frozen
 			if(!g_frozen[id]) set_entvar(id, var_gravity, Float:ArrayGetCell(g_zm_sp_gravity, special_id))
@@ -6113,10 +6166,10 @@ zombieme(id, infector, classid, silentmode, rewards) {
 
 			// Set health [0 = auto]
 			if(get_pcvar_num(cvar_zm_health[classid]) == 0) {
-				if(get_pcvar_num(cvar_zm_basehp[classid]) == 0) fm_set_user_health(id, ArrayGetCell(g_zclass_hp, 0) * fnGetAlive())
-				else fm_set_user_health(id, get_pcvar_num(cvar_zm_basehp[classid]) * fnGetAlive())
+				if(get_pcvar_num(cvar_zm_basehp[classid]) == 0) rg_zp_set_user_health(id, ArrayGetCell(g_zclass_hp, 0) * fnGetAlive())
+				else rg_zp_set_user_health(id, get_pcvar_num(cvar_zm_basehp[classid]) * fnGetAlive())
 			}
-			else fm_set_user_health(id, get_pcvar_num(cvar_zm_health[classid]))
+			else rg_zp_set_user_health(id, get_pcvar_num(cvar_zm_health[classid]))
 
 			// Set gravity, unless frozen
 			if(!g_frozen[id]) set_entvar(id, var_gravity, get_pcvar_float(cvar_zmgravity[classid]))
@@ -6139,7 +6192,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 		}
 		else if((fnGetZombies() == 1) && g_zm_special[id] <= 0) {
 			g_firstzombie[id] = true // First zombie
-			if(silentmode != 2) fm_set_user_health(id, floatround(get_pcvar_float(cvar_zm_health[0]) * float(ArrayGetCell(g_zclass_hp, g_zombieclass[id]))))
+			if(silentmode != 2) rg_zp_set_user_health(id, floatround(get_pcvar_float(cvar_zm_health[0]) * float(ArrayGetCell(g_zclass_hp, g_zombieclass[id]))))
 
 			// Set gravity, if frozen set the restore gravity value instead
 			if(!g_frozen[id]) set_entvar(id, var_gravity, Float:ArrayGetCell(g_zclass_grav, g_zombieclass[id]))
@@ -6151,7 +6204,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 		}
 		else { // Infected by someone
 			// Set health and gravity, unless frozen
-			if(silentmode != 2) fm_set_user_health(id, ArrayGetCell(g_zclass_hp, g_zombieclass[id]))
+			if(silentmode != 2) rg_zp_set_user_health(id, ArrayGetCell(g_zclass_hp, g_zombieclass[id]))
 
 			// Set gravity, if frozen set the restore gravity value instead
 			if(!g_frozen[id]) set_entvar(id, var_gravity, Float:ArrayGetCell(g_zclass_grav, g_zombieclass[id]))
@@ -6168,7 +6221,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 	}
 	else { // Silent mode, no HUD messages, no infection sounds
 		// Set health and gravity, unless frozen
-		if(silentmode != 2) fm_set_user_health(id, ArrayGetCell(g_zclass_hp, g_zombieclass[id])) // Dont change HP when choose other zclass instantanly
+		if(silentmode != 2) rg_zp_set_user_health(id, ArrayGetCell(g_zclass_hp, g_zombieclass[id])) // Dont change HP when choose other zclass instantanly
 		if(!g_frozen[id]) set_entvar(id, var_gravity, Float:ArrayGetCell(g_zclass_grav, g_zombieclass[id]))
 		else g_frozen_gravity[id] = Float:ArrayGetCell(g_zclass_grav, g_zombieclass[id])
 	}
@@ -6327,14 +6380,14 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 		// Reward frags, deaths, health, and ammo packs
 		UpdateFrags(attacker, id, get_pcvar_num(cvar_frags_disinfect), 1, 1)
 		g_ammopacks[attacker] += get_pcvar_num(cvar_ammo_disinfect)
-		//fm_set_user_health(infector, get_entvar(infector, var_health) + get_pcvar_num(cvar_zm_basehp[0]))
+		//rg_zp_set_user_health(infector, get_entvar(infector, var_health) + get_pcvar_num(cvar_zm_basehp[0]))
 	}
 
 	if(classid >= MAX_SPECIALS_HUMANS) { // Set human attributes based on the mode
 		static special_id; special_id = g_hm_special[id]-MAX_SPECIALS_HUMANS
 
-		if(ArrayGetCell(g_hm_sp_health, special_id) == 0) fm_set_user_health(id, get_pcvar_num(cvar_hm_health[0]) * fnGetAlive()) // Set Health [0 = auto]
-		else fm_set_user_health(id, ArrayGetCell(g_hm_sp_health, special_id))
+		if(ArrayGetCell(g_hm_sp_health, special_id) == 0) rg_zp_set_user_health(id, get_pcvar_num(cvar_hm_health[0]) * fnGetAlive()) // Set Health [0 = auto]
+		else rg_zp_set_user_health(id, ArrayGetCell(g_hm_sp_health, special_id))
 
 		// Set gravity, unless frozen
 		if(!g_frozen[id]) set_entvar(id, var_gravity, Float:ArrayGetCell(g_hm_sp_gravity, special_id))
@@ -6358,10 +6411,10 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 	else if(classid > 0 && hm_special_enable[classid]) {
 		// Set Health [0 = auto]
 		if(get_pcvar_num(cvar_hm_health[classid]) == 0) {
-			if(get_pcvar_num(cvar_hm_basehp[classid]) == 0) fm_set_user_health(id, get_pcvar_num(cvar_hm_health[0]) * fnGetAlive())
-			else fm_set_user_health(id, get_pcvar_num(cvar_hm_basehp[classid]) * fnGetAlive())
+			if(get_pcvar_num(cvar_hm_basehp[classid]) == 0) rg_zp_set_user_health(id, get_pcvar_num(cvar_hm_health[0]) * fnGetAlive())
+			else rg_zp_set_user_health(id, get_pcvar_num(cvar_hm_basehp[classid]) * fnGetAlive())
 		}
-		else fm_set_user_health(id, get_pcvar_num(cvar_hm_health[classid]))
+		else rg_zp_set_user_health(id, get_pcvar_num(cvar_hm_health[classid]))
 
 		// Set gravity, unless frozen
 		if(!g_frozen[id]) set_entvar(id, var_gravity, get_pcvar_float(cvar_hmgravity[classid]))
@@ -6410,7 +6463,7 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 
 	}
 	else if(!g_hclass_i) { // Default human if not have human classes
-		fm_set_user_health(id, get_pcvar_num(cvar_hm_health[0])) // Set health
+		rg_zp_set_user_health(id, get_pcvar_num(cvar_hm_health[0])) // Set health
 
 		// Set gravity, unless frozen
 		if(!g_frozen[id]) set_entvar(id, var_gravity, get_pcvar_float(cvar_hmgravity[0]))
@@ -6474,6 +6527,7 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 	rg_reset_maxspeed(id) // Set class speed
 
 	ExecuteForward(g_forwards[HUMANIZED_POST], g_fwDummyResult, id, classid, attacker) // Post user humanize forward
+	ExecuteForward(g_forwards[SPAWN_HUMANIZED_POST], g_fwDummyResult, id); // post spawn humanize forward
 	fnCheckLastZombie() // Last Zombie Check
 }
 
@@ -6508,7 +6562,7 @@ set_hclass_attributes(id)
 	if(Gravity <= 0.0)
 		Gravity = get_pcvar_float(cvar_hmgravity[0])
 
-	fm_set_user_health(id, (userHealth > 0) ? userHealth : get_pcvar_num(cvar_hm_health[0])) // Dont change HP when choose other hclass instantanly
+	rg_zp_set_user_health(id, (userHealth > 0) ? userHealth : get_pcvar_num(cvar_hm_health[0])) // Dont change HP when choose other hclass instantanly
 
 	// Set Class Armor
 	if(ClassArmor > 0)
@@ -6993,7 +7047,7 @@ check_round(leaving_player) { // Check Round Task -check that we still have both
 
 		// If Specials, set chosen player's health to that of the one who's leaving
 		if(get_pcvar_num(cvar_keephealthondisconnect) && isDefaultSpecialZombie(leaving_player))
-			fm_set_user_health(id, fm_get_user_health(leaving_player))
+			rg_zp_set_user_health(id, rg_zp_get_user_health(leaving_player))
 	}
 	else if(isDefaultHuman(leaving_player) && fnGetHumans() == 1) { // Last human disconnecting
 		if(fnGetZombies() == 1 && fnGetPlayersInTeam(RG_ZP_TEAM_T) == 1) return; // Only one T left, don't bother
@@ -7008,7 +7062,7 @@ check_round(leaving_player) { // Check Round Task -check that we still have both
 		g_lastplayerleaving = false // Remove player leaving flag
 
 		if(get_pcvar_num(cvar_keephealthondisconnect) && (g_hm_special[leaving_player] > 0))
-			fm_set_user_health(id, fm_get_user_health(leaving_player))
+			rg_zp_set_user_health(id, rg_zp_get_user_health(leaving_player))
 	}
 }
 public lighting_effects() { // Lighting Effects Task
@@ -7212,7 +7266,7 @@ public event_show_status(id) { // Some one aimed at someone
 
 			// Show the notice
 			set_hudmessage(g_zombie[aimid] ? 255 : 0, 50, g_zombie[aimid] ? 0 : 255, -1.0, 0.60, 1, 0.01, 3.0, 0.01, 0.01, -1)
-			ShowSyncHudMsg(id, g_MsgSync[2], "%L", id, "AIM_INFO", g_playername[aimid], class, fm_get_user_health(aimid), get_entvar(aimid, var_armorvalue), g_ammopacks[aimid])
+			ShowSyncHudMsg(id, g_MsgSync[2], "%L", id, "AIM_INFO", g_playername[aimid], class, rg_zp_get_user_health(aimid), get_entvar(aimid, var_armorvalue), g_ammopacks[aimid])
 		}
 		else {
 			set_hudmessage(g_zombie[aimid] ? 255 : 0, 50, g_zombie[aimid] ? 0 : 255, -1.0, 0.60, 1, 0.01, 3.0, 0.01, 0.01, -1)
@@ -7583,7 +7637,7 @@ public ShowHUD(taskid) { // Show HUD Task
 		// Show name, health, class, and ammo packs and armor
 		set_hudmessage(rgb[0], rgb[1], rgb[2], HUD_SPECT_X, HUD_SPECT_Y, 1, 6.0, 1.1, 0.0, 0.0, -1)
 		ShowSyncHudMsg(ID_SHOWHUD, g_MsgSync[1], "%L %s^nHP: %s - %L %s - %L %s - %L %s%s", ID_SHOWHUD, "SPECTATING", g_playername[id],
-		add_point(fm_get_user_health(id)), ID_SHOWHUD, "CLASS_CLASS", class, ID_SHOWHUD, "AMMO_PACKS1", add_point(g_ammopacks[id]), ID_SHOWHUD, "ARMOR", add_point(get_entvar(id, var_armorvalue)), g_AdditionalHudText)
+		add_point(rg_zp_get_user_health(id)), ID_SHOWHUD, "CLASS_CLASS", class, ID_SHOWHUD, "AMMO_PACKS1", add_point(g_ammopacks[id]), ID_SHOWHUD, "ARMOR", add_point(get_entvar(id, var_armorvalue)), g_AdditionalHudText)
 		return;
 	}
 
@@ -7600,12 +7654,12 @@ public ShowHUD(taskid) { // Show HUD Task
 	else formatex(g_ModeName, charsmax(g_ModeName), "%L", ID_SHOWHUD, g_endround ? "ROUND_ENDED" : mode_langs[g_currentmode])
 
 	static szHealth[64], szArmor[64], szAmmoPack[64], userDeaths, userFrags, userSpd;
-	szHealth = add_point(fm_get_user_health(id));
+	szHealth = add_point(rg_zp_get_user_health(id));
 	szArmor = add_point(get_user_armor(id));
 	szAmmoPack = add_point(g_ammopacks[id]);
 	userDeaths = get_user_deaths(id);
 	userFrags = get_user_frags(id);
-	userSpd = fm_get_speed(id);
+	userSpd = rg_zp_get_speed(id);
 
 	switch(g_hud_type[id]) {
 		case 0: { // Default
@@ -7803,7 +7857,7 @@ fnCheckLastZombie() { // Last Zombie Check -check for last zombie and set its fl
 		if(isDefaultHuman(id) && NumHuman == 1) { // Last human
 			if(!g_lasthuman[id]) {
 				ExecuteForward(g_forwards[USER_LAST_HUMAN], g_fwDummyResult, id); // Last human forward
-				fm_set_user_health(id, fm_get_user_health(id) + get_pcvar_num(cvar_hm_basehp[0])) // Reward extra hp
+				rg_zp_set_user_health(id, rg_zp_get_user_health(id) + get_pcvar_num(cvar_hm_basehp[0])) // Reward extra hp
 			}
 			g_lasthuman[id] = true
 		}
@@ -8466,7 +8520,7 @@ public native_set_rendering(plugin_id, num_params) { // Native: zp_set_user_rend
 	if(!is_user_valid(id)) return false;
 	if(!g_isconnected[id] || !g_isalive[id]) return false;
 
-	fm_set_rendering(id, fx, rgb[0], rgb[1], rgb[2], render, amount)
+	rg_zp_set_rendering(id, fx, rgb[0], rgb[1], rgb[2], render, amount)
 	return true;
 }
 public native_reset_user_rendering(plugin_id, num_params) { // Native: zp_reset_user_rendering
@@ -9049,7 +9103,7 @@ public set_user_frozen(id, set, Float:Duration) {
 		}
 
 		// Light blue glow while frozen
-		fm_set_rendering(id, kRenderFxGlowShell, 0, 100, 200, kRenderNormal, 25)
+		rg_zp_set_rendering(id, kRenderFxGlowShell, 0, 100, 200, kRenderNormal, 25)
 
 		ArrayGetString(ar_sound[15], random_num(0, ArraySize(ar_sound[15]) - 1), sound, charsmax(sound))
 		emit_sound(id, CHAN_BODY, sound, 1.0, ATTN_NORM, 0, PITCH_NORM) // Freeze sound
@@ -11276,7 +11330,7 @@ public set_user_flashlight(taskid) { // Custom Flashlight
 	// Get player and aiming origins
 	static Float:originF[3], Float:destoriginF[3], i
 	get_entvar(ID_FLASH, var_origin, originF)
-	fm_get_aim_origin(ID_FLASH, destoriginF)
+	rg_zp_get_aim_origin(ID_FLASH, destoriginF)
 
 	if(get_distance_f(originF, destoriginF) > get_pcvar_float(cvar_flashdist)) return; // Max distance check
 
@@ -11482,7 +11536,7 @@ public human_aura(taskid) { // Special Human aura task
 	message_end()
 }
 public make_blood(taskid) { // Make zombies leave footsteps and bloodstains on the floor
-	if(!(get_entvar(ID_BLOOD, var_flags) & FL_ONGROUND) || fm_get_speed(ID_BLOOD) < 80) return; // Only bleed when moving on ground
+	if(!(get_entvar(ID_BLOOD, var_flags) & FL_ONGROUND) || rg_zp_get_speed(ID_BLOOD) < 80) return; // Only bleed when moving on ground
 
 	static Float:originF[3]; get_entvar(ID_BLOOD, var_origin, originF) // Get user origin
 
@@ -11797,7 +11851,7 @@ stock rg_zp_give_bpammo(id, weaponid)
 }
 
 // Set an entity's key value (from fakemeta_util)
-stock fm_set_kvd(entity, const key[], const value[], const classname[]) {
+stock rg_zp_set_kvd(entity, const key[], const value[], const classname[]) {
 	set_kvd(0, KV_ClassName, classname);
 	set_kvd(0, KV_KeyName, key);
 	set_kvd(0, KV_Value, value);
@@ -11806,7 +11860,7 @@ stock fm_set_kvd(entity, const key[], const value[], const classname[]) {
 	dllfunc(DLLFunc_KeyValue, entity, 0);
 }
 // Set entity's rendering type (from fakemeta_util);
-stock fm_set_rendering(entity, fx = kRenderFxNone, r = 255, g = 255, b = 255, render = kRenderNormal, amount = 16) {
+stock rg_zp_set_rendering(entity, fx = kRenderFxNone, r = 255, g = 255, b = 255, render = kRenderNormal, amount = 16) {
 	static Float:color[3];
 	color[0] = float(r);
 	color[1] = float(g);
@@ -11817,13 +11871,13 @@ stock fm_set_rendering(entity, fx = kRenderFxNone, r = 255, g = 255, b = 255, re
 	set_entvar(entity, var_rendermode, render);
 	set_entvar(entity, var_renderamt, float(amount));
 }
-stock fm_get_speed(entity) { // Get entity's speed (from fakemeta_util);
+stock rg_zp_get_speed(entity) { // Get entity's speed (from fakemeta_util);
 	static Float:velocity[3];
 	get_entvar(entity, var_velocity, velocity);
 
 	return floatround(vector_length(velocity));
 }
-stock fm_get_aim_origin(id, Float:origin[3]) { // Get entity's aim origins (from fakemeta_util);
+stock rg_zp_get_aim_origin(id, Float:origin[3]) { // Get entity's aim origins (from fakemeta_util);
 	static Float:origin1F[3], Float:origin2F[3];
 	get_entvar(id, var_origin, origin1F)
 	get_entvar(id, var_view_ofs, origin2F)
@@ -11843,8 +11897,8 @@ stock fm_find_ent_by_owner(entity, const classname[], owner) { // Find entity by
 	return entity;
 }
 // Set player's health (from fakemeta_util)
-stock fm_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
-stock fm_get_user_health(id)
+stock rg_zp_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
+stock rg_zp_get_user_health(id)
 {
     return floatround(get_entvar(id, var_health))
 }
@@ -12016,13 +12070,13 @@ stock fm_user_team_update(id) {
 
 public turn_invisible(id) { // Predator/Spy Invisible Powers
 	if(g_zm_special[id] == PREDATOR) {
-		if(get_pcvar_num(cvar_zm_glow[PREDATOR])) fm_set_rendering(id, kRenderFxGlowShell, get_pcvar_num(cvar_zm_red[PREDATOR]), get_pcvar_num(cvar_zm_green[PREDATOR]), get_pcvar_num(cvar_zm_blue[PREDATOR]), kRenderTransAdd, 5)
-		else fm_set_rendering(id, kRenderFxGlowShell, 0, 0, 0, kRenderTransAdd, 5)
+		if(get_pcvar_num(cvar_zm_glow[PREDATOR])) rg_zp_set_rendering(id, kRenderFxGlowShell, get_pcvar_num(cvar_zm_red[PREDATOR]), get_pcvar_num(cvar_zm_green[PREDATOR]), get_pcvar_num(cvar_zm_blue[PREDATOR]), kRenderTransAdd, 5)
+		else rg_zp_set_rendering(id, kRenderFxGlowShell, 0, 0, 0, kRenderTransAdd, 5)
 	}
 
 	if(g_hm_special[id] == SPY) {
-		if(get_pcvar_num(cvar_hm_glow[SPY])) fm_set_rendering(id, kRenderFxGlowShell, get_pcvar_num(cvar_hm_red[SPY]), get_pcvar_num(cvar_hm_green[SPY]), get_pcvar_num(cvar_hm_blue[SPY]), kRenderTransAdd, 5)
-		else fm_set_rendering(id, kRenderFxGlowShell, 0, 0, 0, kRenderTransAdd, 5)
+		if(get_pcvar_num(cvar_hm_glow[SPY])) rg_zp_set_rendering(id, kRenderFxGlowShell, get_pcvar_num(cvar_hm_red[SPY]), get_pcvar_num(cvar_hm_green[SPY]), get_pcvar_num(cvar_hm_blue[SPY]), kRenderTransAdd, 5)
+		else rg_zp_set_rendering(id, kRenderFxGlowShell, 0, 0, 0, kRenderTransAdd, 5)
 	}
 }
 
@@ -12370,29 +12424,29 @@ public reset_user_rendering(id) {
 
 	if(g_fwDummyResult >= ZP_PLUGIN_SUPERCEDE) return; // The game mode didnt accept some conditions
 
-	if(g_frozen[id]) fm_set_rendering(ent_id, kRenderFxGlowShell, 0, 100, 200, kRenderNormal, 25) // Light blue glow while frozen
+	if(g_frozen[id]) rg_zp_set_rendering(ent_id, kRenderFxGlowShell, 0, 100, 200, kRenderNormal, 25) // Light blue glow while frozen
 	else if(g_zombie[id]) {
-		if(isDefaultZombie(id)) fm_set_rendering(ent_id)
+		if(isDefaultZombie(id)) rg_zp_set_rendering(ent_id)
 
 		else if(isCustomSpecialZombie(id)) {
-			if(ArrayGetCell(g_zm_sp_glow, g_zm_special[id]-MAX_SPECIALS_ZOMBIES) > 0) fm_set_rendering(ent_id, kRenderFxGlowShell, ArrayGetCell(g_zm_sp_r, g_zm_special[id]-MAX_SPECIALS_ZOMBIES), ArrayGetCell(g_zm_sp_g, g_zm_special[id]-MAX_SPECIALS_ZOMBIES), ArrayGetCell(g_zm_sp_b, g_zm_special[id]-MAX_SPECIALS_ZOMBIES), kRenderNormal, 20)
-			else fm_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0,  kRenderNormal, 20)
+			if(ArrayGetCell(g_zm_sp_glow, g_zm_special[id]-MAX_SPECIALS_ZOMBIES) > 0) rg_zp_set_rendering(ent_id, kRenderFxGlowShell, ArrayGetCell(g_zm_sp_r, g_zm_special[id]-MAX_SPECIALS_ZOMBIES), ArrayGetCell(g_zm_sp_g, g_zm_special[id]-MAX_SPECIALS_ZOMBIES), ArrayGetCell(g_zm_sp_b, g_zm_special[id]-MAX_SPECIALS_ZOMBIES), kRenderNormal, 20)
+			else rg_zp_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0,  kRenderNormal, 20)
 		}
 		else {
-			if(get_pcvar_num(cvar_zm_glow[g_zm_special[id]])) fm_set_rendering(ent_id, kRenderFxGlowShell, get_pcvar_num(cvar_zm_red[g_zm_special[id]]), get_pcvar_num(cvar_zm_green[g_zm_special[id]]), get_pcvar_num(cvar_zm_blue[g_zm_special[id]]), g_zm_special[id] == PREDATOR ? kRenderTransAdd : kRenderNormal, g_zm_special[id] == PREDATOR ?  5 : 20)
-			else fm_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0, g_zm_special[id] == PREDATOR ? kRenderTransAdd : kRenderNormal, g_zm_special[id] == PREDATOR ?  5 : 20)
+			if(get_pcvar_num(cvar_zm_glow[g_zm_special[id]])) rg_zp_set_rendering(ent_id, kRenderFxGlowShell, get_pcvar_num(cvar_zm_red[g_zm_special[id]]), get_pcvar_num(cvar_zm_green[g_zm_special[id]]), get_pcvar_num(cvar_zm_blue[g_zm_special[id]]), g_zm_special[id] == PREDATOR ? kRenderTransAdd : kRenderNormal, g_zm_special[id] == PREDATOR ?  5 : 20)
+			else rg_zp_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0, g_zm_special[id] == PREDATOR ? kRenderTransAdd : kRenderNormal, g_zm_special[id] == PREDATOR ?  5 : 20)
 		}
 	}
 	else {
-		if(isDefaultHuman(id)) fm_set_rendering(ent_id)
+		if(isDefaultHuman(id)) rg_zp_set_rendering(ent_id)
 
 		else if(isCustomSpecialHuman(id)) {
-			if(ArrayGetCell(g_hm_sp_glow, g_hm_special[id]-MAX_SPECIALS_HUMANS) > 0) fm_set_rendering(ent_id, kRenderFxGlowShell, ArrayGetCell(g_hm_sp_r, g_hm_special[id]-MAX_SPECIALS_HUMANS), ArrayGetCell(g_hm_sp_g, g_hm_special[id]-MAX_SPECIALS_HUMANS), ArrayGetCell(g_hm_sp_b, g_hm_special[id]-MAX_SPECIALS_HUMANS), kRenderNormal, 20)
-			else fm_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0,  kRenderNormal, 20)
+			if(ArrayGetCell(g_hm_sp_glow, g_hm_special[id]-MAX_SPECIALS_HUMANS) > 0) rg_zp_set_rendering(ent_id, kRenderFxGlowShell, ArrayGetCell(g_hm_sp_r, g_hm_special[id]-MAX_SPECIALS_HUMANS), ArrayGetCell(g_hm_sp_g, g_hm_special[id]-MAX_SPECIALS_HUMANS), ArrayGetCell(g_hm_sp_b, g_hm_special[id]-MAX_SPECIALS_HUMANS), kRenderNormal, 20)
+			else rg_zp_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0,  kRenderNormal, 20)
 		}
 		else {
-			if(get_pcvar_num(cvar_hm_glow[g_hm_special[id]])) fm_set_rendering(ent_id, kRenderFxGlowShell, get_pcvar_num(cvar_hm_red[g_hm_special[id]]), get_pcvar_num(cvar_hm_green[g_hm_special[id]]), get_pcvar_num(cvar_hm_blue[g_hm_special[id]]), g_hm_special[id] == SPY ? kRenderTransAdd : kRenderNormal, g_hm_special[id] == SPY ? 5 : 20)
-			else fm_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0, g_hm_special[id] == SPY ? kRenderTransAdd : kRenderNormal, g_hm_special[id] == SPY ? 5 : 20)
+			if(get_pcvar_num(cvar_hm_glow[g_hm_special[id]])) rg_zp_set_rendering(ent_id, kRenderFxGlowShell, get_pcvar_num(cvar_hm_red[g_hm_special[id]]), get_pcvar_num(cvar_hm_green[g_hm_special[id]]), get_pcvar_num(cvar_hm_blue[g_hm_special[id]]), g_hm_special[id] == SPY ? kRenderTransAdd : kRenderNormal, g_hm_special[id] == SPY ? 5 : 20)
+			else rg_zp_set_rendering(ent_id, kRenderFxGlowShell, 0, 0, 0, g_hm_special[id] == SPY ? kRenderTransAdd : kRenderNormal, g_hm_special[id] == SPY ? 5 : 20)
 		}
 	}
 	ExecuteForward(g_forwards[RESET_RENDERING_POST], g_fwDummyResult, id)
@@ -13047,11 +13101,11 @@ public Flame_Think(ent) { // Burning Flames
 		}
 	}
 	// Get player's health
-	static health; health = fm_get_user_health(victim)
+	static health; health = rg_zp_get_user_health(victim)
 
 	// Take damage from the fire
 	if(health - floatround(get_pcvar_float(cvar_firedamage), floatround_ceil) > 0)
-		fm_set_user_health(victim, health - floatround(get_pcvar_float(cvar_firedamage), floatround_ceil))
+		rg_zp_set_user_health(victim, health - floatround(get_pcvar_float(cvar_firedamage), floatround_ceil))
 
 	set_entvar(ent, var_scale, random_float(0.5, 1.2))
 	set_entvar(ent, var_nextthink, gametime + 0.2)
