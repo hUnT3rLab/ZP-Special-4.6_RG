@@ -1343,8 +1343,8 @@ public plugin_precache() {
 				ArrayGetString(model_zm_special[x], i, buffer, charsmax(buffer))
 				precache_player_model(buffer)
 			}
-			precache_model(model_vknife_zm_special[x])
-			if(x == DRAGON) frostsprite = precache_model("sprites/frost_explode.spr")
+			precache_model_ex(model_vknife_zm_special[x])
+			if(x == DRAGON) frostsprite = precache_model_ex("sprites/frost_explode.spr")
 		}
 	}
 	for(x = 0; x < MAX_SPECIALS_HUMANS; x++) {
@@ -1353,36 +1353,36 @@ public plugin_precache() {
 				ArrayGetString(model_human[x], i, buffer, charsmax(buffer))
 				precache_player_model(buffer)
 			}
-			precache_model(model_v_weapon_human[x])
-			precache_model(model_p_weapon_human[x])
+			precache_model_ex(model_v_weapon_human[x])
+			precache_model_ex(model_p_weapon_human[x])
 		}
 	}
 	// Custom weapon models
 	for(i = 0; i < MAX_WPN_MDL; i++) {
-		precache_model(model_grenade_infect[i])
-		precache_model(model_grenade_bombardier[i])
-		precache_model(model_grenade_fire[i])
-		precache_model(model_grenade_frost[i])
-		precache_model(model_grenade_flare[i])
+		precache_model_ex(model_grenade_infect[i])
+		precache_model_ex(model_grenade_bombardier[i])
+		precache_model_ex(model_grenade_fire[i])
+		precache_model_ex(model_grenade_frost[i])
+		precache_model_ex(model_grenade_flare[i])
 
 		if(i < WORLD_MODEL) {
-			precache_model(model_knife_admin_human[i])
-			precache_model(model_knife_vip_human[i])
+			precache_model_ex(model_knife_admin_human[i])
+			precache_model_ex(model_knife_vip_human[i])
 		}
 	}
-	precache_model(model_vknife_admin_zombie)
-	precache_model(model_vknife_vip_zombie)
+	precache_model_ex(model_vknife_admin_zombie)
+	precache_model_ex(model_vknife_vip_zombie)
 
 	for(i = 0; i < MAX_GRENADES; i++) { // Custom sprites for grenades
-		if(enable_trail[i]) g_trailSpr[i] = precache_model(sprite_grenade_trail[i]);
-		if(i != FLARE && enable_explode[i]) g_ExplodeSpr[i] = precache_model(sprite_grenade_explode[i]);
-		if(i != FLARE && enable_gib[i]) g_GibSpr[i] = precache_model(sprite_grenade_gib[i]);
+		if(enable_trail[i]) g_trailSpr[i] = precache_model_ex(sprite_grenade_trail[i]);
+		if(i != FLARE && enable_explode[i]) g_ExplodeSpr[i] = precache_model_ex(sprite_grenade_explode[i]);
+		if(i != FLARE && enable_gib[i]) g_GibSpr[i] = precache_model_ex(sprite_grenade_gib[i]);
 	}
 
-	g_RingSpr = precache_model(sprite_grenade_ring)
-	g_flameSpr = precache_model(sprite_grenade_fire)
-	g_smokeSpr = precache_model(sprite_grenade_smoke)
-	g_glassSpr = precache_model(sprite_grenade_glass)
+	g_RingSpr = precache_model_ex(sprite_grenade_ring)
+	g_flameSpr = precache_model_ex(sprite_grenade_fire)
+	g_smokeSpr = precache_model_ex(sprite_grenade_smoke)
+	g_glassSpr = precache_model_ex(sprite_grenade_glass)
 
 	if(g_enable_end_round_sounds) { // Custom sounds
 		for(i = 0; i < ArraySize(sound_win_zombies); i++) {
@@ -6799,12 +6799,12 @@ load_customization_from_files() {
 		static skyname[32]
 		for(i = 0; i < ArraySize(g_sky_names); i++) {
 			ArrayGetString(g_sky_names, i, skyname, charsmax(skyname))
-			precache_generic(fmt("gfx/env/%sbk.tga", skyname));
-			precache_generic(fmt("gfx/env/%sdn.tga", skyname));
-			precache_generic(fmt("gfx/env/%sft.tga", skyname));
-			precache_generic(fmt("gfx/env/%slf.tga", skyname));
-			precache_generic(fmt("gfx/env/%srt.tga", skyname));
-			precache_generic(fmt("gfx/env/%sup.tga", skyname));
+			precache_sky(fmt("gfx/env/%sbk.tga", skyname));
+			precache_sky(fmt("gfx/env/%sdn.tga", skyname));
+			precache_sky(fmt("gfx/env/%sft.tga", skyname));
+			precache_sky(fmt("gfx/env/%slf.tga", skyname));
+			precache_sky(fmt("gfx/env/%srt.tga", skyname));
+			precache_sky(fmt("gfx/env/%sup.tga", skyname));
 		}
 	}
 	amx_load_setting_string_arr(ZP_CUSTOMIZATION_FILE, "Lightning Lights Cycle", "LIGHTS", lights_thunder) // Lightning Lights Cycle
@@ -9682,7 +9682,7 @@ public native_register_zombie_special(plugin_id, num_params) {
 	if(!amx_load_setting_string(ZP_SPECIAL_CLASSES_FILE, section, "V_KNIFE MODEL", knifemodel, charsmax(knifemodel)))
 		amx_save_setting_string(ZP_SPECIAL_CLASSES_FILE, section, "V_KNIFE MODEL", knifemodel)
 	ArrayPushString(g_zm_sp_knifemodel, knifemodel)
-	precache_model(knifemodel)
+	precache_model_ex(knifemodel)
 
 	static Array:ArrPainSnd
 	ArrPainSnd = ArrayCreate(64, 1)
@@ -10531,7 +10531,7 @@ public native_register_zombie_class(plugin_id, num_params) {
 		amx_save_setting_string(ZP_ZOMBIECLASSES_FILE, section, "CLAWMODEL", clawmodel)
 	ArrayPushString(g_zclass_clawmodel, clawmodel)
 
-	precache_model(fmt("models/zombie_plague/%s", clawmodel)) // Precache clawmodel
+	precache_model_ex(fmt("models/zombie_plague/%s", clawmodel)) // Precache clawmodel
 
 	// Load/Save Pain Sounds //
 	static Array:ArrPainSnd
@@ -11726,6 +11726,34 @@ stock PlaySound(const snd[]) { // Plays a sound on clients
  [Stocks]
 =================================================================================*/
 
+stock precache_model_ex(const path[], any:...)
+{
+	new szPath[PLATFORM_MAX_PATH]
+	vformat(szPath, charsmax(szPath), path, 2)
+	if (!file_exists(szPath, true))
+	{
+		set_fail_state("[ZPSp] Fatal Error: Model does not exists (path: %s)", szPath)
+		return INVALID_HANDLE
+	}
+
+	return precache_model(szPath)
+}
+
+stock precache_sky(const szSkyName[])
+{
+	new const szSuffix[6][3] = {"up", "dn", "ft", "bk", "lf", "rt"};
+	for(new szTgaFile[MAX_RESOURCE_PATH_LENGTH+3], i = 0; i < 6; i++)
+	{
+		// Get full path of the File.
+		formatex(szTgaFile, charsmax(szTgaFile), "gfx/env/%s%s.tga", szSkyName, szSuffix[i]);
+
+		// File is exist?
+		if(file_exists(szTgaFile, true))
+			precache_generic(szTgaFile);
+		else
+			server_print("[ZPSp] Cannot locate file '%s', Skipping...", szTgaFile);
+	}
+}
 
 stock rg_zp_set_user_bpammo(index, weapon, amount)
 {
@@ -12694,13 +12722,13 @@ public is_gamemode_enable(modeid) {
 precache_player_model(const modelname[]) {
 	static longname[128], index
 	formatex(longname, charsmax(longname), "models/player/%s/%s.mdl", modelname, modelname)
-	index = precache_model(longname)
+	index = precache_model_ex(longname)
 
 	if(g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, longname)
 	if(g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, longname)
 
 	copy(longname[strlen(longname)-4], charsmax(longname) - (strlen(longname)-4), "T.mdl")
-	if(file_exists(longname)) precache_model(longname)
+	if(file_exists(longname)) precache_model_ex(longname)
 
 	return index
 }
