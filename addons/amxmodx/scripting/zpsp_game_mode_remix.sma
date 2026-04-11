@@ -205,7 +205,7 @@ stock turn_random_class(id, team) {
 			class_random[id] = random_num(NEMESIS, DRAGON+zp_get_custom_special_count(GET_ZOMBIE))
 
 		zp_make_user_special(id, class_random[id], GET_ZOMBIE) // Turn into a randomly special
-		set_user_health(id, get_pcvar_num(cvar_zombiehp)) // Set his health
+		rg_zp_set_user_health(id, get_pcvar_num(cvar_zombiehp)) // Set his health
 		return true;
 	}
 	else if(team == GET_HUMAN) {
@@ -214,7 +214,7 @@ stock turn_random_class(id, team) {
 			class_random[id] = random_num(SURVIVOR, SPY + zp_get_custom_special_count(GET_HUMAN))
 
 		zp_make_user_special(id, class_random[id], GET_HUMAN) // Turn into a randomly special
-		set_user_health(id, get_pcvar_num(cvar_humanhp)) // Set his health
+		rg_zp_set_user_health(id, get_pcvar_num(cvar_humanhp)) // Set his health
 		return true;
 	}
 	return false;
