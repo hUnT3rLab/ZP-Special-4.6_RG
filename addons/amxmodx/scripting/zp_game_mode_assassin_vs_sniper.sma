@@ -32,7 +32,7 @@
 \***************************************************************************/
 
 #include <amxmodx>
-#include <fun>
+#include <reapi>
 #include <zombie_plague_special>
 #include <amx_settings_api>
 
@@ -138,11 +138,11 @@ public zp_player_spawn_post(id)
 	// Check if the player is a zombie
 	if(zp_get_user_zombie(id)) {
 		zp_make_user_assassin(id) // Make him an assassin instead
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_assahp))) // Set his health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_assahp))) // Set his health
 	}
 	else {
 		zp_make_user_sniper(id) // Make him a sniper
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_sniperhp))) // Set his health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_sniperhp))) // Set his health
 	}
 }
 public zp_game_mode_selected_pre(id, game)
@@ -207,7 +207,7 @@ start_avs_mode() {
 			continue;
 			
 		zp_make_user_assassin(id) // Make user assassin
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_assahp))) // Set his health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_assahp))) // Set his health
 		i_assassins++ // Increase counter
 	}
 
@@ -220,6 +220,6 @@ start_avs_mode() {
 			continue;
 		
 		zp_make_user_sniper(id) // Turn into a sniper
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_sniperhp))) // Set his health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_sniperhp))) // Set his health
 	}
 }
