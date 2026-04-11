@@ -39,7 +39,7 @@
 \***************************************************************************/
 
 #include <amxmodx>
-#include <fun>
+#include <reapi>
 #include <zombie_plague_special>
 #include <amx_settings_api>
 
@@ -148,11 +148,11 @@ public zp_player_spawn_post(id) {
 	// Check if the player is a zombie
 	if(zp_get_alive_specials(GET_ZOMBIE) < zp_get_alive_specials(GET_HUMAN)) {
 		zp_make_user_special(id, g_random ? NEMESIS : ASSASSIN , GET_ZOMBIE) // Transform user in Assassin/Nemesis
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_nemhp : cvar_assahp))) // Seting Nemesis/Assassin Health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_nemhp : cvar_assahp))) // Seting Nemesis/Assassin Health
 	}
 	else {
 		zp_make_user_special(id, g_random ? SNIPER : SURVIVOR , GET_HUMAN) // Transform user in Sniper/Survivor
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_sniperhp : cvar_survhp)))// Seting Sniper/Survivor Health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_sniperhp : cvar_survhp)))// Seting Sniper/Survivor Health
 	}
 }
 
@@ -216,7 +216,7 @@ start_nightmare_mode() {
 
 		g_random = random_num(0, 1) // Randonize
 		zp_make_user_special(id, g_random ? NEMESIS : ASSASSIN , GET_ZOMBIE)  // Transform user in Assassin/Nemesis
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_nemhp : cvar_assahp)))  // Seting Nemesis/Assassin Health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_nemhp : cvar_assahp)))  // Seting Nemesis/Assassin Health
 	}
 	
 	// Turn the remaining players into snipers/survivors
@@ -230,7 +230,7 @@ start_nightmare_mode() {
 
 		g_random = random_num(0, 1) // Randonize
 		zp_make_user_special(id, g_random ? SNIPER : SURVIVOR , GET_HUMAN)  // Transform user in Sniper/Survivor 
-		set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_sniperhp : cvar_survhp))) // Seting Sniper/Survivor Health
+		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(g_random ? cvar_sniperhp : cvar_survhp))) // Seting Sniper/Survivor Health
 	}
 }
 
@@ -248,3 +248,5 @@ stock zp_get_alive_specials(user_class) {
 	}
 	return special;
 }
+
+stock rg_zp_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
