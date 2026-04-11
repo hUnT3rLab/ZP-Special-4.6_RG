@@ -1801,6 +1801,21 @@ forward zp_player_spawn_post(id, resp_zombie);
 forward zp_spawn_humanized_post(id);
 
 /**
+ * Called when a player spawns as zombie or gets infected. This is also called for CZ bots 
+ * which are spawning
+ *
+ * @note You should use this, instead of other spawn forwards,
+ * when you want to change some one's class after spawning.
+ * 
+ * @note If you have used this forward then you must return 
+ * ZP_PLUGIN_HANDLED to inform the main plugin that you have used
+ * this forward
+ *
+ * @param id		Player index who has spawned
+ */
+forward zp_spawn_infected_post(id);
+
+/**
  * Called when a player buys an extra item from the ZP menu.
  *
  * @note You can now return ZP_PLUGIN_HANDLED in your plugin to block
