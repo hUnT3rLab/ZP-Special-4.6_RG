@@ -875,7 +875,6 @@ new g_isconnected[33], g_isalive[33], g_isbot[33], g_currentweapon[33], g_player
 #define is_user_valid_connected(%1) (1 <= %1 <= MaxClients && is_user_connected(%1))
 #define is_user_valid_alive(%1) (1 <= %1 <= MaxClients && is_user_alive(%1))
 #define is_user_valid(%1) (1 <= %1 <= MaxClients)
-#define fm_get_user_health(%1) get_entvar(%1, var_health)
 
 // Cached CVARs
 new g_cached_customflash, g_cached_zombiesilent, Float:g_cached_buytime, g_hm_cached_leap[MAX_SPECIALS_HUMANS], Float:g_hm_cached_cooldown[MAX_SPECIALS_HUMANS],
@@ -11808,6 +11807,10 @@ stock fm_find_ent_by_owner(entity, const classname[], owner) { // Find entity by
 }
 // Set player's health (from fakemeta_util)
 stock fm_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
+stock fm_get_user_health(id)
+{
+    return floatround(get_entvar(id, var_health))
+}
 
 stock load_spawns() { // Collect random spawn points
 	// Check for CSDM spawns of the current map
