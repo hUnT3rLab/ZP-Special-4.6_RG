@@ -34,7 +34,7 @@
 \***************************************************************************/
 
 #include <amxmodx>
-#include <fun>
+#include <reapi>
 #include <zombie_plague_special>
 #include <amx_settings_api>
 
@@ -219,3 +219,5 @@ stock turn_random_class(id, team) {
 	}
 	return false;
 }
+
+stock rg_zp_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
