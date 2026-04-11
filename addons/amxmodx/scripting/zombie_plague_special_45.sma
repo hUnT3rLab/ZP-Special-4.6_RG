@@ -2363,6 +2363,11 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 	remove_task(id+TASK_FLASH)
 	remove_task(id+TASK_NVISION)
 
+	if(!g_modestarted) {
+		rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+		fm_user_team_update(id)
+	}
+
 	if(get_pcvar_num(cvar_randspawn)) do_random_spawn(id); // Spawn at a random location?
 	if(get_pcvar_num(cvar_removemoney)) set_task(0.4, "task_hide_money", id+TASK_SPAWN); // Hide money?
 
