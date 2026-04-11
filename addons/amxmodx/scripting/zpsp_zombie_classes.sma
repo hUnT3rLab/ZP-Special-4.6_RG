@@ -17,7 +17,7 @@
 ================================================================================*/
 
 #include <amxmodx>
-#include <fakemeta>
+#include <reapi>
 #include <zombie_plague_special>
 
 /*================================================================================
@@ -99,5 +99,5 @@ public zp_user_infected_post(id, infector) {
 
 	// If attacker is a leech zombie, gets extra hp
 	if(zp_get_user_zombie_class(infector) == g_zclass_leech && !zp_get_zombie_special_class(id))
-		set_pev(infector, pev_health, float(pev(infector, pev_health) + zclass5_infecthp))
+		set_entvar(infector, var_health, float(get_entvar(infector, var_health) + zclass5_infecthp))
 }
