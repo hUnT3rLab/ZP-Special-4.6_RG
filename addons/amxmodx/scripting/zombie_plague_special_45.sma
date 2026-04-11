@@ -588,7 +588,6 @@ enum { // CS Teams
 	RG_ZP_TEAM_CT,
 	RG_ZP_TEAM_SPECTATOR
 };
-new const CS_TEAM_NAMES[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
 // Some constants
 const HIDE_MONEY = (1<<5);
@@ -1349,8 +1348,8 @@ public plugin_precache() {
 				ArrayGetString(model_zm_special[x], i, buffer, charsmax(buffer))
 				precache_player_model(buffer)
 			}
-			precache_model_ex(model_vknife_zm_special[x])
-			if(x == DRAGON) frostsprite = precache_model_ex("sprites/frost_explode.spr")
+			precache_model(model_vknife_zm_special[x])
+			if(x == DRAGON) frostsprite = precache_model("sprites/frost_explode.spr")
 		}
 	}
 	for(x = 0; x < MAX_SPECIALS_HUMANS; x++) {
@@ -1359,36 +1358,36 @@ public plugin_precache() {
 				ArrayGetString(model_human[x], i, buffer, charsmax(buffer))
 				precache_player_model(buffer)
 			}
-			precache_model_ex(model_v_weapon_human[x])
-			precache_model_ex(model_p_weapon_human[x])
+			precache_model(model_v_weapon_human[x])
+			precache_model(model_p_weapon_human[x])
 		}
 	}
 	// Custom weapon models
 	for(i = 0; i < MAX_WPN_MDL; i++) {
-		precache_model_ex(model_grenade_infect[i])
-		precache_model_ex(model_grenade_bombardier[i])
-		precache_model_ex(model_grenade_fire[i])
-		precache_model_ex(model_grenade_frost[i])
-		precache_model_ex(model_grenade_flare[i])
+		precache_model(model_grenade_infect[i])
+		precache_model(model_grenade_bombardier[i])
+		precache_model(model_grenade_fire[i])
+		precache_model(model_grenade_frost[i])
+		precache_model(model_grenade_flare[i])
 
 		if(i < WORLD_MODEL) {
-			precache_model_ex(model_knife_admin_human[i])
-			precache_model_ex(model_knife_vip_human[i])
+			precache_model(model_knife_admin_human[i])
+			precache_model(model_knife_vip_human[i])
 		}
 	}
-	precache_model_ex(model_vknife_admin_zombie)
-	precache_model_ex(model_vknife_vip_zombie)
+	precache_model(model_vknife_admin_zombie)
+	precache_model(model_vknife_vip_zombie)
 
 	for(i = 0; i < MAX_GRENADES; i++) { // Custom sprites for grenades
-		if(enable_trail[i]) g_trailSpr[i] = precache_model_ex(sprite_grenade_trail[i]);
-		if(i != FLARE && enable_explode[i]) g_ExplodeSpr[i] = precache_model_ex(sprite_grenade_explode[i]);
-		if(i != FLARE && enable_gib[i]) g_GibSpr[i] = precache_model_ex(sprite_grenade_gib[i]);
+		if(enable_trail[i]) g_trailSpr[i] = precache_model(sprite_grenade_trail[i]);
+		if(i != FLARE && enable_explode[i]) g_ExplodeSpr[i] = precache_model(sprite_grenade_explode[i]);
+		if(i != FLARE && enable_gib[i]) g_GibSpr[i] = precache_model(sprite_grenade_gib[i]);
 	}
 
-	g_RingSpr = precache_model_ex(sprite_grenade_ring)
-	g_flameSpr = precache_model_ex(sprite_grenade_fire)
-	g_smokeSpr = precache_model_ex(sprite_grenade_smoke)
-	g_glassSpr = precache_model_ex(sprite_grenade_glass)
+	g_RingSpr = precache_model(sprite_grenade_ring)
+	g_flameSpr = precache_model(sprite_grenade_fire)
+	g_smokeSpr = precache_model(sprite_grenade_smoke)
+	g_glassSpr = precache_model(sprite_grenade_glass)
 
 	if(g_enable_end_round_sounds) { // Custom sounds
 		for(i = 0; i < ArraySize(sound_win_zombies); i++) {
@@ -2425,7 +2424,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 
 	if(!g_modestarted) {
 		rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-		fm_user_team_update(id)
+		fm_user_team_update()
 	}
 
 	if(get_pcvar_num(cvar_randspawn)) do_random_spawn(id); // Spawn at a random location?
@@ -2497,7 +2496,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 	if(!g_newround && rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 		remove_task(id+TASK_TEAM)
 		rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-		fm_user_team_update(id)
+		fm_user_team_update()
 	}
 
 	reset_player_models(id)
@@ -4361,7 +4360,7 @@ public menu_game(id, key) { // Game Menu
 
 			// Then move him to the spectator team
 			rg_zp_set_user_team(id, RG_ZP_TEAM_SPECTATOR)
-			fm_user_team_update(id)
+			fm_user_team_update()
 		}
 		case 8: { // Admin Menu
 			// Check if player has the required access
@@ -5570,7 +5569,7 @@ start_plague_mode(id, mode) { // Start plague mode
 			if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 				remove_task(id+TASK_TEAM)
 				rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-				fm_user_team_update(id)
+				fm_user_team_update()
 			}
 		}
 
@@ -5929,7 +5928,7 @@ set_special_zombie_mode(id, mode, class) {
 			if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 				remove_task(id+TASK_TEAM)
 				rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-				fm_user_team_update(id)
+				fm_user_team_update()
 			}
 			set_screenfadein(id, 5, get_pcvar_num(cvar_zm_red[class]), get_pcvar_num(cvar_zm_green[class]), get_pcvar_num(cvar_zm_blue[class]), 255)
 
@@ -6005,14 +6004,14 @@ public update_team(id) {
 		if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 			remove_task(id+TASK_TEAM)
 			rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-			fm_user_team_update(id)
+			fm_user_team_update()
 		}
 	}
 	else {
 		if(rg_get_user_team(id) != RG_ZP_TEAM_T) { // need to change team?
 			remove_task(id+TASK_TEAM)
 			rg_zp_set_user_team(id, RG_ZP_TEAM_T)
-			fm_user_team_update(id)
+			fm_user_team_update()
 		}
 	}
 }
@@ -6047,7 +6046,7 @@ start_infection_mode(id, mode) { // Start the default infection mode
 		if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 			remove_task(id+TASK_TEAM)
 			rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-			fm_user_team_update(id)
+			fm_user_team_update()
 		}
 	}
 
@@ -6239,7 +6238,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 	if(rg_get_user_team(id) != RG_ZP_TEAM_T) { // need to change team?
 		remove_task(id+TASK_TEAM)
 		rg_zp_set_user_team(id, RG_ZP_TEAM_T)
-		fm_user_team_update(id)
+		fm_user_team_update()
 	}
 
 	rg_zp_set_user_zoom(id, CS_RESET_ZOOM, 1) // Remove any zoom (bugfix)
@@ -6498,7 +6497,7 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 	if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 		remove_task(id+TASK_TEAM)
 		rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
-		fm_user_team_update(id)
+		fm_user_team_update()
 	}
 
 	// Restore FOV?
@@ -6863,12 +6862,12 @@ load_customization_from_files() {
 		static skyname[32]
 		for(i = 0; i < ArraySize(g_sky_names); i++) {
 			ArrayGetString(g_sky_names, i, skyname, charsmax(skyname))
-			precache_sky(fmt("gfx/env/%sbk.tga", skyname));
-			precache_sky(fmt("gfx/env/%sdn.tga", skyname));
-			precache_sky(fmt("gfx/env/%sft.tga", skyname));
-			precache_sky(fmt("gfx/env/%slf.tga", skyname));
-			precache_sky(fmt("gfx/env/%srt.tga", skyname));
-			precache_sky(fmt("gfx/env/%sup.tga", skyname));
+			precache_generic(fmt("gfx/env/%sbk.tga", skyname));
+			precache_generic(fmt("gfx/env/%sdn.tga", skyname));
+			precache_generic(fmt("gfx/env/%sft.tga", skyname));
+			precache_generic(fmt("gfx/env/%slf.tga", skyname));
+			precache_generic(fmt("gfx/env/%srt.tga", skyname));
+			precache_generic(fmt("gfx/env/%sup.tga", skyname));
 		}
 	}
 	amx_load_setting_string_arr(ZP_CUSTOMIZATION_FILE, "Lightning Lights Cycle", "LIGHTS", lights_thunder) // Lightning Lights Cycle
@@ -7515,7 +7514,6 @@ reset_vars(id, resetall) { // Reset Player Vars
 	g_lasthuman[id] = false
 	g_frozen[id] = false
 	g_nodamage[id] = false
-	set_entvar(id, var_takedamage, DAMAGE_AIM)
 	g_respawn_as_zombie[id] = false
 	g_nvision[id] = false
 	g_nvisionenabled[id] = false
@@ -9746,7 +9744,7 @@ public native_register_zombie_special(plugin_id, num_params) {
 	if(!amx_load_setting_string(ZP_SPECIAL_CLASSES_FILE, section, "V_KNIFE MODEL", knifemodel, charsmax(knifemodel)))
 		amx_save_setting_string(ZP_SPECIAL_CLASSES_FILE, section, "V_KNIFE MODEL", knifemodel)
 	ArrayPushString(g_zm_sp_knifemodel, knifemodel)
-	precache_model_ex(knifemodel)
+	precache_model(knifemodel)
 
 	static Array:ArrPainSnd
 	ArrPainSnd = ArrayCreate(64, 1)
@@ -10595,7 +10593,7 @@ public native_register_zombie_class(plugin_id, num_params) {
 		amx_save_setting_string(ZP_ZOMBIECLASSES_FILE, section, "CLAWMODEL", clawmodel)
 	ArrayPushString(g_zclass_clawmodel, clawmodel)
 
-	precache_model_ex(fmt("models/zombie_plague/%s", clawmodel)) // Precache clawmodel
+	precache_model(fmt("models/zombie_plague/%s", clawmodel)) // Precache clawmodel
 
 	// Load/Save Pain Sounds //
 	static Array:ArrPainSnd
@@ -11790,35 +11788,6 @@ stock PlaySound(const snd[]) { // Plays a sound on clients
  [Stocks]
 =================================================================================*/
 
-stock precache_model_ex(const path[], any:...)
-{
-	new szPath[PLATFORM_MAX_PATH]
-	vformat(szPath, charsmax(szPath), path, 2)
-	if (!file_exists(szPath, true))
-	{
-		set_fail_state("[ZPSp] Fatal Error: Model does not exists (path: %s)", szPath)
-		return INVALID_HANDLE
-	}
-
-	return precache_model(szPath)
-}
-
-stock precache_sky(const szSkyName[])
-{
-	new const szSuffix[6][3] = {"up", "dn", "ft", "bk", "lf", "rt"};
-	for(new szTgaFile[MAX_RESOURCE_PATH_LENGTH+3], i = 0; i < 6; i++)
-	{
-		// Get full path of the File.
-		formatex(szTgaFile, charsmax(szTgaFile), "gfx/env/%s%s.tga", szSkyName, szSuffix[i]);
-
-		// File is exist?
-		if(file_exists(szTgaFile, true))
-			precache_generic(szTgaFile);
-		else
-			server_print("[ZPSp] Cannot locate file '%s', Skipping...", szTgaFile);
-	}
-}
-
 stock rg_zp_set_user_bpammo(index, weapon, amount)
 {
 	rg_set_user_bpammo(index, WeaponIdType:weapon, amount)
@@ -12065,13 +12034,8 @@ stock rg_zp_set_user_batteries(id, value) { // Set User Flashlight Batteries
 
 	set_member(id, m_iFlashBattery, value)
 }
-stock fm_user_team_update(id) {
+stock fm_user_team_update() {
 	rg_update_teamscores()
-	
-	message_begin(MSG_ALL, g_msgTeamInfo)
-	write_byte(id)
-	write_string(CS_TEAM_NAMES[get_member(id, m_iTeam)])
-	message_end()
 }
 
 public turn_invisible(id) { // Predator/Spy Invisible Powers
@@ -12786,13 +12750,13 @@ public is_gamemode_enable(modeid) {
 precache_player_model(const modelname[]) {
 	static longname[128], index
 	formatex(longname, charsmax(longname), "models/player/%s/%s.mdl", modelname, modelname)
-	index = precache_model_ex(longname)
+	index = precache_model(longname)
 
 	if(g_force_consistency == 1) force_unmodified(force_model_samebounds, {0,0,0}, {0,0,0}, longname)
 	if(g_force_consistency == 2) force_unmodified(force_exactfile, {0,0,0}, {0,0,0}, longname)
 
 	copy(longname[strlen(longname)-4], charsmax(longname) - (strlen(longname)-4), "T.mdl")
-	if(file_exists(longname)) precache_model_ex(longname)
+	if(file_exists(longname)) precache_model(longname)
 
 	return index
 }
