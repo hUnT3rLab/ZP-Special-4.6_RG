@@ -346,7 +346,11 @@
 				- Fixed native zp_set_lighting (Again)
 				- Fixed error log when user disconnects with personal menu opened
 				- Fixed Zombie Armor when Berserker is attacker
-
+		* 4.6:
+			- Heavily converted to Reapi & drastically reduced leniency from fakemeta, cstrike. Added minor engine usage.
+			- Refactored weapon ammo system
+			- Backpack ammo now relies on mp_infinite_ammo cvar from regamedll, added in zombie_plague_special.cfg
+			- While stock API hold fm_ prefix, they use reapi APIs.
 
 ============================================================================================================================*/
 
@@ -579,10 +583,10 @@ const OFFSET_LINUX = 5; // offsets 5 higher in Linux builds
 const OFFSET_LINUX_WEAPONS = 4; // weapon offsets are only 4 steps higher on Linux
 
 enum { // CS Teams
-	FM_CS_TEAM_UNASSIGNED = 0,
-	FM_CS_TEAM_T,
-	FM_CS_TEAM_CT,
-	FM_CS_TEAM_SPECTATOR
+	RG_ZP_TEAM_UNASSIGNED = 0,
+	RG_ZP_TEAM_T,
+	RG_ZP_TEAM_CT,
+	RG_ZP_TEAM_SPECTATOR
 };
 new const CS_TEAM_NAMES[][] = { "UNASSIGNED", "TERRORIST", "CT", "SPECTATOR" };
 
@@ -2252,7 +2256,7 @@ public logevent_round_end() { // Log Event Round End
 
 			team = rg_get_user_team(id)
 
-			if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED) continue; // Not playing
+			if(team == RG_ZP_TEAM_SPECTATOR || team == RG_ZP_TEAM_UNASSIGNED) continue; // Not playing
 
 			save_stats(id)
 		}
@@ -2364,7 +2368,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 	remove_task(id+TASK_NVISION)
 
 	if(!g_modestarted) {
-		rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+		rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 		fm_user_team_update(id)
 	}
 
@@ -2433,9 +2437,9 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 	rg_reset_maxspeed(id) // Set human maxspeed
 
 	// Switch to CT if spawning mid-round
-	if(!g_newround && rg_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
+	if(!g_newround && rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 		remove_task(id+TASK_TEAM)
-		rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+		rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 		fm_user_team_update(id)
 	}
 
@@ -3406,7 +3410,7 @@ public clcmd_drop(id) { // Special human should stick with its weapon
 }
 public clcmd_changeteam(id) { // Block Team Change
 	static team; team = rg_get_user_team(id)
-	if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED) return PLUGIN_CONTINUE; // Unless it's a spectator joining the game
+	if(team == RG_ZP_TEAM_SPECTATOR || team == RG_ZP_TEAM_UNASSIGNED) return PLUGIN_CONTINUE; // Unless it's a spectator joining the game
 	show_menu_game(id) // Pressing 'M' (chooseteam) ingame should show the main menu instead
 	return PLUGIN_HANDLED;
 }
@@ -4298,7 +4302,7 @@ public menu_game(id, key) { // Game Menu
 			remove_task(id+TASK_AURA)
 
 			// Then move him to the spectator team
-			rg_zp_set_user_team(id, FM_CS_TEAM_SPECTATOR)
+			rg_zp_set_user_team(id, RG_ZP_TEAM_SPECTATOR)
 			fm_user_team_update(id)
 		}
 		case 8: { // Admin Menu
@@ -5309,7 +5313,7 @@ public message_teaminfo(msg_id, msg_dest) { // Team Switch (or player joining a 
 			if(g_currentmode >= MODE_SURVIVOR && g_currentmode < MODE_SWARM && fnGetHumans() || !fnGetZombies()) {
 				g_respawn_as_zombie[id] = true;
 				remove_task(id+TASK_TEAM);
-				rg_zp_set_user_team(id, FM_CS_TEAM_T);
+				rg_zp_set_user_team(id, RG_ZP_TEAM_T);
 				set_msg_arg_string(2, "TERRORIST");
 			}
 		}
@@ -5319,7 +5323,7 @@ public message_teaminfo(msg_id, msg_dest) { // Team Switch (or player joining a 
 
 			else if(fnGetZombies()) { // zombies alive --> switch to CT
 				remove_task(id+TASK_TEAM)
-				rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+				rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 				set_msg_arg_string(2, "CT")
 			}
 		}
@@ -5505,9 +5509,9 @@ start_plague_mode(id, mode) { // Start plague mode
 			if(!g_isalive[id] || g_zombie[id] /* || g_hm_special[id] == SURVIVOR */) continue; // Only those of them who arent zombies or survivor
 
 			// Switch to CT
-			if(rg_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
+			if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 				remove_task(id+TASK_TEAM)
-				rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+				rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 				fm_user_team_update(id)
 			}
 		}
@@ -5864,9 +5868,9 @@ set_special_zombie_mode(id, mode, class) {
 			if(g_zombie[id] || g_hm_special[id]) humanme(id, 0, 1, 0) // Turn others players to human (When forces start round after round alterady started by native)
 
 			// Switch to CT
-			if(rg_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
+			if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 				remove_task(id+TASK_TEAM)
-				rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+				rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 				fm_user_team_update(id)
 			}
 			set_screenfadein(id, 5, get_pcvar_num(cvar_zm_red[class]), get_pcvar_num(cvar_zm_green[class]), get_pcvar_num(cvar_zm_blue[class]), 255)
@@ -5940,16 +5944,16 @@ public update_team(id) {
 	if(!g_isalive[id]) return
 
 	if(!g_zombie[id]) {
-		if(rg_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
+		if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 			remove_task(id+TASK_TEAM)
-			rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+			rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 			fm_user_team_update(id)
 		}
 	}
 	else {
-		if(rg_get_user_team(id) != FM_CS_TEAM_T) { // need to change team?
+		if(rg_get_user_team(id) != RG_ZP_TEAM_T) { // need to change team?
 			remove_task(id+TASK_TEAM)
-			rg_zp_set_user_team(id, FM_CS_TEAM_T)
+			rg_zp_set_user_team(id, RG_ZP_TEAM_T)
 			fm_user_team_update(id)
 		}
 	}
@@ -5982,9 +5986,9 @@ start_infection_mode(id, mode) { // Start the default infection mode
 			humanme(id, 0, 1, 0)
 
 		// Switch to CT
-		if(rg_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
+		if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 			remove_task(id+TASK_TEAM)
-			rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+			rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 			fm_user_team_update(id)
 		}
 	}
@@ -6174,9 +6178,9 @@ zombieme(id, infector, classid, silentmode, rewards) {
 	remove_task(id+TASK_AURA)
 
 	// Switch to T
-	if(rg_get_user_team(id) != FM_CS_TEAM_T) { // need to change team?
+	if(rg_get_user_team(id) != RG_ZP_TEAM_T) { // need to change team?
 		remove_task(id+TASK_TEAM)
-		rg_zp_set_user_team(id, FM_CS_TEAM_T)
+		rg_zp_set_user_team(id, RG_ZP_TEAM_T)
 		fm_user_team_update(id)
 	}
 
@@ -6432,9 +6436,9 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 	}
 
 	// Switch to CT
-	if(rg_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
+	if(rg_get_user_team(id) != RG_ZP_TEAM_CT) { // need to change team?
 		remove_task(id+TASK_TEAM)
-		rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+		rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 		fm_user_team_update(id)
 	}
 
@@ -6885,11 +6889,11 @@ balance_teams() { // Balance Teams Task
 		if(!g_isconnected[id]) continue; // Skip if not connected
 
 		team[id] = rg_get_user_team(id)
-		if(team[id] == FM_CS_TEAM_SPECTATOR || team[id] == FM_CS_TEAM_UNASSIGNED) continue; // Skip if not playing
+		if(team[id] == RG_ZP_TEAM_SPECTATOR || team[id] == RG_ZP_TEAM_UNASSIGNED) continue; // Skip if not playing
 
 		remove_task(id+TASK_TEAM)
-		rg_zp_set_user_team(id, FM_CS_TEAM_CT) // Set team
-		team[id] = FM_CS_TEAM_CT
+		rg_zp_set_user_team(id, RG_ZP_TEAM_CT) // Set team
+		team[id] = RG_ZP_TEAM_CT
 	}
 
 	while(iTerrors < iMaxTerrors) { // Then randomly set half of the players to Terrorists
@@ -6897,11 +6901,11 @@ balance_teams() { // Balance Teams Task
 
 		if(!g_isconnected[id]) continue; // Skip if not connected
 
-		if(team[id] != FM_CS_TEAM_CT) continue; // Skip if not playing or already a Terrorist
+		if(team[id] != RG_ZP_TEAM_CT) continue; // Skip if not playing or already a Terrorist
 
 		if(random_num(0, 1)) { // Random chance
-			rg_zp_set_user_team(id, FM_CS_TEAM_T)
-			team[id] = FM_CS_TEAM_T
+			rg_zp_set_user_team(id, RG_ZP_TEAM_T)
+			team[id] = RG_ZP_TEAM_T
 			iTerrors++
 		}
 	}
@@ -6919,7 +6923,7 @@ public respawn_player_check_task(taskid) { // Respawn Player Check Task (if kill
 
 	static team; team = rg_get_user_team(ID_SPAWN) // Get player's team
 
-	if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED) return; // Player moved to spectators
+	if(team == RG_ZP_TEAM_SPECTATOR || team == RG_ZP_TEAM_UNASSIGNED) return; // Player moved to spectators
 
 	// If player was being spawned as a zombie, set the flag again
 	if(g_zombie[ID_SPAWN]) g_respawn_as_zombie[ID_SPAWN] = true
@@ -6930,7 +6934,7 @@ public respawn_player_check_task(taskid) { // Respawn Player Check Task (if kill
 public respawn_player_task(taskid) { // Respawn Player Task
 	static team; team = rg_get_user_team(ID_SPAWN) // Get player's team
 
-	if(team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED)
+	if(team == RG_ZP_TEAM_SPECTATOR || team == RG_ZP_TEAM_UNASSIGNED)
 		return;
 
 	if((!g_endround && !g_isalive[ID_SPAWN]) && (!isCustomMode() || g_deathmatchmode)) {
@@ -6960,8 +6964,8 @@ public respawn_player_task(taskid) { // Respawn Player Task
 }
 respawn_player_manually(id) { // Respawn Player Manually (called after respawn checks are done)
 	// Set proper team before respawning, so that the TeamInfo message that's sent doesn't confuse PODBots
-	if(g_respawn_as_zombie[id]) rg_zp_set_user_team(id, FM_CS_TEAM_T)
-	else rg_zp_set_user_team(id, FM_CS_TEAM_CT)
+	if(g_respawn_as_zombie[id]) rg_zp_set_user_team(id, RG_ZP_TEAM_T)
+	else rg_zp_set_user_team(id, RG_ZP_TEAM_CT)
 
 	rg_round_respawn(id) // Respawning a player has never been so easy
 }
@@ -6976,7 +6980,7 @@ check_round(leaving_player) { // Check Round Task -check that we still have both
 	if(iPlayersnum < 2) return; // Last alive player, don't bother
 
 	if(g_zombie[leaving_player] && fnGetZombies() == 1) { // Last zombie disconnecting
-		if(fnGetHumans() == 1 && fnGetPlayersInTeam(FM_CS_TEAM_CT) == 1) return; // Only one CT left, don't bother
+		if(fnGetHumans() == 1 && fnGetPlayersInTeam(RG_ZP_TEAM_CT) == 1) return; // Only one CT left, don't bother
 
 		// Pick a random one to take his place
 		while((id = fnGetRandomAlive(random_num(1, iPlayersnum))) == leaving_player) { /* keep looping */ }
@@ -6992,7 +6996,7 @@ check_round(leaving_player) { // Check Round Task -check that we still have both
 			fm_set_user_health(id, fm_get_user_health(leaving_player))
 	}
 	else if(isDefaultHuman(leaving_player) && fnGetHumans() == 1) { // Last human disconnecting
-		if(fnGetZombies() == 1 && fnGetPlayersInTeam(FM_CS_TEAM_T) == 1) return; // Only one T left, don't bother
+		if(fnGetZombies() == 1 && fnGetPlayersInTeam(RG_ZP_TEAM_T) == 1) return; // Only one T left, don't bother
 
 		// Pick a random one to take his place
 		while((id = fnGetRandomAlive(random_num(1, iPlayersnum))) == leaving_player) { /* keep looping */ }
@@ -7770,7 +7774,7 @@ fnGetPlaying() { // Get Playing -returns number of users playing-
 	for(id = 1; id <= MaxClients; id++) {
 		if(g_isconnected[id]) {
 			team = rg_get_user_team(id)
-			if(team != FM_CS_TEAM_SPECTATOR && team != FM_CS_TEAM_UNASSIGNED) iPlaying++
+			if(team != RG_ZP_TEAM_SPECTATOR && team != RG_ZP_TEAM_UNASSIGNED) iPlaying++
 		}
 	}
 	return iPlaying;
@@ -7884,7 +7888,7 @@ allowed_special(id, zombie, specialid) { // Checks if a player is allowed to be 
 }
 allowed_respawn(id) { // Checks if a player is allowed to respawn
 	static team; team = rg_get_user_team(id)
-	if(g_endround || team == FM_CS_TEAM_SPECTATOR || team == FM_CS_TEAM_UNASSIGNED || g_isalive[id]) return false;
+	if(g_endround || team == RG_ZP_TEAM_SPECTATOR || team == RG_ZP_TEAM_UNASSIGNED || g_isalive[id]) return false;
 
 	return true;
 }
@@ -11982,7 +11986,7 @@ stock rg_zp_set_user_deaths(id, value) { // Set User Deaths
 	set_member(id, m_iDeaths, value)
 }
 stock rg_get_user_team(id) { // Get User Team
-	if(is_entity(id) != true) return FM_CS_TEAM_UNASSIGNED; // Prevent server crash if entity's private data not initalized
+	if(is_entity(id) != true) return RG_ZP_TEAM_UNASSIGNED; // Prevent server crash if entity's private data not initalized
 
 	return get_member(id, m_iTeam);
 }
