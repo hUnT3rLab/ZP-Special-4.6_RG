@@ -223,3 +223,5 @@ start_avs_mode() {
 		rg_zp_set_user_health(id, floatround(get_user_health(id) * get_pcvar_float(cvar_sniperhp))) // Set his health
 	}
 }
+
+stock rg_zp_set_user_health(id, health) (health > 0) ? set_entvar(id, var_health, float(health)) : user_kill(id);
