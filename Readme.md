@@ -1,3 +1,5 @@
+## Server Crash Detected, do not use zombie_plague_special_46_rg_crash_detected.sma, its only for reference:
+
 ## Zombie Plague Special 4.6:
 # Requirements: Latest versions of REHLDS + ReGameDLL + REAPI + AMXMODX
 - Converted for REAPI
