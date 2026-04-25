@@ -6,7 +6,7 @@
 
 ## Zombie Plague Special 4.6:
 # Requirements: Latest versions of REHLDS + ReGameDLL + REAPI + AMXMODX
-- Converted for REAPI
+- Compatible with reapi & amxmodx 1.9/1.10
 
 ## Donate:
 - If you want to donate for my works to encourage me to continue with the work feel free to donate
@@ -378,8 +378,5 @@
 		- Fixed native zp_set_lighting (Again)
 		- Fixed error log when user disconnects with personal menu opened
 		- Fixed Zombie Armor when Berserker is attacker
-	* **4.5**
-		- Heavily converted to Reapi & drastically reduced leniency from fakemeta, cstrike. Added minor engine usage.
-		- Refactored weapon ammo system
-		- Backpack ammo now relies on mp_infinite_ammo cvar from regamedll, added in zombie_plague_special.cfg
-  	 	- While stock API hold fm_ prefix, they use reapi APIs.
+	* **4.6**
+		- Minor reapi conversions
