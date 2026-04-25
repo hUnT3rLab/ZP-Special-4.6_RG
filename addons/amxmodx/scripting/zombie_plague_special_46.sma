@@ -607,7 +607,7 @@ const IMPULSE_FLASHLIGHT = 100;
 const USE_USING = 2;
 const USE_STOPPED = 0;
 const STEPTIME_SILENT = 999;
-const BREAK_GLASS = 0x01;
+const ZP_BREAK_GLASS = 0x01;
 const FFADE_IN = 0x0000;
 const FFADE_STAYOUT = 0x0004;
 const PEV_SPEC_TARGET = pev_iuser2;
@@ -3492,7 +3492,7 @@ public clcmd_buyammo(id) { 	// Buy BP Ammo or infinite ammo setting enabled
 	}
 
 	// Get user weapons
-	static weapons[32], num, i, currentammo, weaponid, refilled
+	static weapons[32], num, i, g_currentammo, weaponid, refilled
 	num = 0 // reset passed weapons count (bugfix)
 	refilled = false
 	get_user_weapons(id, weapons, num)
@@ -3500,9 +3500,9 @@ public clcmd_buyammo(id) { 	// Buy BP Ammo or infinite ammo setting enabled
 	for(i = 0; i < num; i++) { // Loop through them and give the right ammo type
 		weaponid = weapons[i] // Prevents re-indexing the array
 		if(MAXBPAMMO[weaponid] > 2) { // Primary and secondary only
-			currentammo = cs_get_user_bpammo(id, weaponid) // Get current ammo of the weapon
+			g_currentammo = cs_get_user_bpammo(id, weaponid) // Get current ammo of the weapon
 			ExecuteHamB(Ham_GiveAmmo, id, BUYAMMO[weaponid], AMMOTYPE[weaponid], MAXBPAMMO[weaponid]) // Give additional ammo
-			if(cs_get_user_bpammo(id, weaponid) - currentammo > 0) refilled = true // Check whether we actually refilled the weapon's ammo
+			if(cs_get_user_bpammo(id, weaponid) - g_currentammo > 0) refilled = true // Check whether we actually refilled the weapon's ammo
 		}
 	}
 
@@ -7438,7 +7438,7 @@ public remove_freeze(id) { // Remove freeze task
 	write_short(g_glassSpr) // model
 	write_byte(10) // count
 	write_byte(25) // life
-	write_byte(BREAK_GLASS) // flags
+	write_byte(ZP_BREAK_GLASS) // flags
 	message_end()
 
 	ExecuteForward(g_forwards[USER_UNFROZEN], g_fwDummyResult, id);
@@ -9137,7 +9137,7 @@ public set_user_frozen(id, set, Float:Duration) {
 				write_short(g_glassSpr) // model
 				write_byte(10) // count
 				write_byte(25) // life
-				write_byte(BREAK_GLASS) // flags
+				write_byte(ZP_BREAK_GLASS) // flags
 				message_end()
 
 				return true;
