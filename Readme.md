@@ -1,5 +1,9 @@
 ## Server Crash Detected, do not use zombie_plague_special_46_rg_crash_detected.sma, its only for reference:
 
+# It is not worth replacing default modules with reapi as it does not make any difference.
+
+## Use zombie_plague_special_46.sma for best performance & optimizations
+
 ## Zombie Plague Special 4.6:
 # Requirements: Latest versions of REHLDS + ReGameDLL + REAPI + AMXMODX
 - Converted for REAPI
