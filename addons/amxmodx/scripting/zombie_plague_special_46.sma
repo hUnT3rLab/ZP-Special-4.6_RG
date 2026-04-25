@@ -384,6 +384,7 @@ const MAX_STATS_SAVED = 64;
 #include <fakemeta>
 #include <hamsandwich>
 #include <xs>
+#include <reapi>
 #include <amx_settings_api>
 
 /*================================================================================
@@ -571,8 +572,6 @@ const Float:HUD_SPECT_X = -1.0;
 const Float:HUD_SPECT_Y = 0.8;
 const Float:HUD_STATS_X = 0.78;
 const Float:HUD_STATS_Y = 0.18;
-
-new Ham:Ham_Player_ResetMaxSpeed = Ham_Item_PreFrame; // Hack to be able to use Ham_Player_ResetMaxSpeed (by joaquimandrade)
 
 // CS Player PData Offsets (win32)
 const PDATA_SAFE = 2;
@@ -901,8 +900,7 @@ cvar_zm_red[MAX_SPECIALS_ZOMBIES], cvar_zm_green[MAX_SPECIALS_ZOMBIES], cvar_zm_
 
 // Cached stuff for players
 new g_isconnected[33], g_isalive[33], g_isbot[33], g_currentweapon[33], g_playername[33][32], Float:g_spd[33], Float:g_custom_leap_cooldown[33], Float:g_zombie_knockback[33], g_pl_classname[33][64], g_pl_classname_lang[33];
-// #define is_user_valid_connected(%1) (1 <= %1 <= MaxClients && g_isconnected[%1])
-// #define is_user_valid_alive(%1) (1 <= %1 <= MaxClients && g_isalive[%1])
+
 #define is_user_valid_connected(%1) (1 <= %1 <= MaxClients && is_user_connected(%1))
 #define is_user_valid_alive(%1) (1 <= %1 <= MaxClients && is_user_alive(%1))
 #define is_user_valid(%1) (1 <= %1 <= MaxClients)
@@ -1534,7 +1532,6 @@ public plugin_init() {
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage", 0, true)
 	RegisterHam(Ham_TakeDamage, "player", "fw_TakeDamage_Post", 1, true)
 	RegisterHam(Ham_TraceAttack, "player", "fw_TraceAttack", 0, true)
-	RegisterHam(Ham_Player_ResetMaxSpeed, "player", "fw_ResetMaxSpeed_Post", 1, true)
 	RegisterHam(Ham_AddPlayerItem, "player", "fw_AddPlayerItem", 0, true)
 
 	RegisterHam(Ham_Use, "func_pushable", "fw_UsePushable")
@@ -1551,19 +1548,17 @@ public plugin_init() {
 	for(i = 1; i < sizeof WEAPONENTNAMES; i++)
 		if(WEAPONENTNAMES[i][0]) RegisterHam(Ham_Item_Deploy, WEAPONENTNAMES[i], "fw_Item_Deploy_Post", 1)
 
-	// FM Forwards
-	register_forward(FM_ClientDisconnect, "fw_ClientDisconnect")
-	register_forward(FM_ClientDisconnect, "fw_ClientDisconnect_Post", 1)
 	register_forward(FM_ClientKill, "fw_ClientKill")
 	register_forward(FM_EmitSound, "fw_EmitSound")
 	register_forward(FM_SetClientKeyValue, "fw_SetClientKeyValue")
-	register_forward(FM_ClientUserInfoChanged, "fw_ClientUserInfoChanged")
-	register_forward(FM_GetGameDescription, "fw_GetGameDescription")
 	register_forward(FM_SetModel, "fw_SetModel")
 	register_forward(FM_CmdStart, "fw_CmdStart")
-	register_forward(FM_PlayerPreThink, "fw_PlayerPreThink")
 	unregister_forward(FM_Spawn, g_fwSpawn)
 	unregister_forward(FM_PrecacheSound, g_fwPrecacheSound)
+
+	RegisterHookChain(RG_CBasePlayer_PreThink, "fw_PlayerPreThink")
+	RegisterHookChain(RG_CBasePlayer_SetClientUserInfoName, "fw_SetClientInfoName_Post", 1)
+	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "fw_ResetMaxSpeed_Post", 1)
 
 	// Client commands
 	register_clcmd("nightvision", "clcmd_nightvision")
@@ -2223,8 +2218,6 @@ public plugin_init() {
 	if(equal(mymod, "czero")) g_czero = 1
 }
 public plugin_cfg() {
-	static cfgdir[32]; get_configsdir(cfgdir, charsmax(cfgdir)) // Get configs dir
-	server_cmd("exec %s/%s", cfgdir, ZP_CFG_FILE) // Execute .cfg config file
 
 	g_arrays_created = false // Prevent any more stuff from registering
 
@@ -2232,6 +2225,16 @@ public plugin_cfg() {
 	set_task(0.5, "cache_cvars")
 	set_task(0.5, "event_round_start") // Cache CVARs after configs are loaded / call roundstart manually
 	set_task(0.5, "logevent_round_start")
+
+	set_task(5.0, "cfg_load_ex")
+}
+
+public cfg_load_ex()
+{
+	set_member_game(m_GameDesc, g_modname) // Gamemode name
+
+	static cfgdir[32]; get_configsdir(cfgdir, charsmax(cfgdir)) // Get configs dir
+	server_cmd("exec %s/%s", cfgdir, ZP_CFG_FILE) // Execute .cfg config file
 }
 
 /*================================================================================
@@ -2487,7 +2490,7 @@ public fw_PlayerSpawn_Post(id) { // Ham Player Spawn Post Forward
 			g_nvision[id] = false
 		}
 	}
-	ExecuteHamB(Ham_Player_ResetMaxSpeed, id) // Set human maxspeed
+	rg_reset_maxspeed(id) // Set human maxspeed
 
 	// Switch to CT if spawning mid-round
 	if(!g_newround && fm_cs_get_user_team(id) != FM_CS_TEAM_CT) { // need to change team?
@@ -3020,6 +3023,11 @@ public client_putinserver(id) { // Client joins the game
 	}
 }
 
+public client_disconnected(id) {
+	fw_ClientDisconnect(id)
+	fnCheckLastZombie()
+}
+
 public fw_ClientDisconnect(id) { // Client leaving
 	if(g_isalive[id]) check_round(id) // Check that we still have both humans and zombies to keep the round going
 
@@ -3040,7 +3048,6 @@ public fw_ClientDisconnect(id) { // Client leaving
 	g_isbot[id] = false
 	g_isalive[id] = false
 }
-public fw_ClientDisconnect_Post() fnCheckLastZombie(); // Last Zombie Check
 
 public fw_ClientKill() { // Client Kill Forward
 	if(get_pcvar_num(cvar_blocksuicide)) return FMRES_SUPERCEDE; // Prevent players from killing themselves?
@@ -3121,7 +3128,7 @@ public fw_SetClientKeyValue(id, const infobuffer[], const key[]) { // Forward Se
 
 	return FMRES_IGNORED;
 }
-public fw_ClientUserInfoChanged(id) { // Forward Client User Info Changed -prevent players from changing models-
+public fw_SetClientInfoName_Post(id) { // Forward Client User Info Changed -prevent players from changing models-
 	if(!is_user_valid_alive(id))
 		return;
 
@@ -3132,10 +3139,6 @@ public fw_ClientUserInfoChanged(id) { // Forward Client User Info Changed -preve
 		set_pev(id, pev_body, g_playerbody[id])
 		set_pev(id, pev_skin, g_playerskin[id])
 	}
-}
-public fw_GetGameDescription() { // Forward Get Game Description
-	forward_return(FMV_STRING, g_modname) // Return the mod name so it can be easily identified
-	return FMRES_SUPERCEDE;
 }
 
 public fw_SetModel(entity, const model[]) { // Forward Set Model
@@ -6355,7 +6358,7 @@ zombieme(id, infector, classid, silentmode, rewards) {
 
 	reset_player_models(id) // Set models
 	if(!g_frozen[id]) reset_user_rendering(id) // Reset Rendering
-	ExecuteHamB(Ham_Player_ResetMaxSpeed, id) // Set class speed
+	rg_reset_maxspeed(id) // Set class speed
 
 	ExecuteForward(g_forwards[INFECTED_POST], g_fwDummyResult, id, infector, classid) // Post user infect forward
 	fnCheckLastZombie() // Last Zombie Check
@@ -6577,7 +6580,7 @@ humanme(id, classid, silentmode, attacker) { // Function Human Me (player id, tu
 
 	reset_player_models(id) // Set models
 	if(!g_frozen[id]) reset_user_rendering(id) // Reset Rendering
-	ExecuteHamB(Ham_Player_ResetMaxSpeed, id) // Set class speed
+	rg_reset_maxspeed(id) // Set class speed
 
 	ExecuteForward(g_forwards[HUMANIZED_POST], g_fwDummyResult, id, classid, attacker) // Post user humanize forward
 	fnCheckLastZombie() // Last Zombie Check
@@ -7401,7 +7404,7 @@ public remove_freeze(id) { // Remove freeze task
 
 	// Restore gravity and maxspeed (bugfix)
 	set_pev(id, pev_gravity, g_frozen_gravity[id])
-	ExecuteHamB(Ham_Player_ResetMaxSpeed, id)
+	rg_reset_maxspeed(id)
 
 	reset_user_rendering(id) // Reset Glow
 
@@ -8998,7 +9001,7 @@ public native_set_user_maxspeed(plugin_id, num_params) { // Native: zp_set_user_
 
 	g_user_custom_speed[id] = true
 	g_current_maxspeed[id] = Speed
-	ExecuteHamB(Ham_Player_ResetMaxSpeed, id)
+	rg_reset_maxspeed(id)
 
 	return true
 }
@@ -9020,7 +9023,7 @@ public native_reset_user_maxspeed(plugin_id, num_params) { // Native: zp_reset_u
 		g_user_custom_speed[id] = false
 		g_current_maxspeed[id] = 0.0
 	}
-	ExecuteHamB(Ham_Player_ResetMaxSpeed, id)
+	rg_reset_maxspeed(id)
 	return true;
 }
 public native_set_user_nightvision(plugin_id, num_params) { // Native: zp_set_user_nightvision
@@ -9178,7 +9181,7 @@ public set_user_frozen(id, set, Float:Duration) {
 		if(pev(id, pev_flags) & FL_ONGROUND) set_pev(id, pev_gravity, 999999.9) // set really high
 		else set_pev(id, pev_gravity, 0.000001) // no gravity
 
-		ExecuteHamB(Ham_Player_ResetMaxSpeed, id) // Prevent from moving
+		rg_reset_maxspeed(id) // Prevent from moving
 		ExecuteForward(g_forwards[FROZEN_POST], g_fwDummyResult, id);
 
 		if(Duration)
