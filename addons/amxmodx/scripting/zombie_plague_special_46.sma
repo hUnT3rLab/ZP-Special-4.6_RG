@@ -894,6 +894,8 @@ cvar_zm_respawn[MAX_SPECIALS_ZOMBIES],cvar_zm_basehp[MAX_SPECIALS_ZOMBIES], cvar
 cvar_zm_allow_frost[MAX_SPECIALS_ZOMBIES], cvar_zm_allow_burn[MAX_SPECIALS_ZOMBIES], cvar_block_zm_use_button, cvar_zombieescapefail, cvar_zm_idle_sound, cvar_hm_allow_weight_spd;
 new frostsprite, cvar_dragon_power_distance, cvar_dragon_power_cooldown, cvar_dragon_flyspped, cvar_hud_mode, cvar_hud_hm_rgb[3], cvar_hud_zm_rgb[3], Float:gLastUseCmd[33];
 
+new bool:g_bBlockStartupMOTD, bool:g_bBlockHintMessage
+
 // CVARS with arrays
 new cvar_flashcolor[3], cvar_flashcolor2[3], cvar_hm_red[MAX_SPECIALS_HUMANS], cvar_hm_green[MAX_SPECIALS_HUMANS], cvar_hm_blue[MAX_SPECIALS_HUMANS],
 cvar_zm_red[MAX_SPECIALS_ZOMBIES], cvar_zm_green[MAX_SPECIALS_ZOMBIES], cvar_zm_blue[MAX_SPECIALS_ZOMBIES], cvar_flashlight_menu, cvar_nvision_menu[2], cvar_zombie_nvsion_rgb[3];
@@ -1520,7 +1522,6 @@ public plugin_init() {
 	register_event("StatusValue", "event_show_status", "be", "1=2", "2!0")
 	register_event("StatusValue", "event_hide_status", "be", "1=1", "2=0")
 	register_logevent("logevent_round_start",2, "1=Round_Start")
-	register_logevent("logevent_round_end", 2, "1=Round_End")
 	register_event("AmmoX", "event_ammo_x", "be")
 
 	for(new i = 0; i < MAX_AMBIENCE_SOUNDS; i++) if(g_ambience_sounds[i]) register_event("30", "event_intermission", "a")
@@ -1559,6 +1560,8 @@ public plugin_init() {
 	RegisterHookChain(RG_CBasePlayer_PreThink, "fw_PlayerPreThink")
 	RegisterHookChain(RG_CBasePlayer_SetClientUserInfoName, "fw_SetClientInfoName_Post", 1)
 	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "fw_ResetMaxSpeed_Post", 1)
+	RegisterHookChain(RG_CBasePlayer_HintMessageEx, "fw_PlayerHintMessageEx_Pre")
+	RegisterHookChain(RG_RoundEnd, "fw_RoundEnd_Post", 1)
 
 	// Client commands
 	register_clcmd("nightvision", "clcmd_nightvision")
@@ -1626,6 +1629,7 @@ public plugin_init() {
 	register_message(get_user_msgid("SendAudio"), "message_sendaudio")
 	register_message(get_user_msgid("TeamScore"), "message_teamscore")
 	register_message(g_msgTeamInfo, "message_teaminfo")
+	register_message(get_user_msgid("MOTD"), "fw_MOTD_Msg")
 
 	// CVARS - General Purpose
 	cvar_warmup = register_cvar("zp_delay", "10")
@@ -1676,6 +1680,9 @@ public plugin_init() {
 	cvar_hud_zm_rgb[0] = register_cvar("zp_zm_hud_color_r", "255")
 	cvar_hud_zm_rgb[1] = register_cvar("zp_zm_hud_color_g", "255")
 	cvar_hud_zm_rgb[2] = register_cvar("zp_zm_hud_color_b", "0")
+
+	bind_pcvar_num(register_cvar("zp_block_MOTD", "1"), g_bBlockStartupMOTD)
+	bind_pcvar_num(register_cvar("zp_block_hintmsg", "1"), g_bBlockHintMessage)
 
 	// CVARS - Deathmatch
 	cvar_deathmatch = register_cvar("zp_deathmatch", "0")
@@ -2273,7 +2280,7 @@ public logevent_round_start() {
 	g_freezetime = false // Freezetime ends
 }
 
-public logevent_round_end() { // Log Event Round End
+public fw_RoundEnd_Post(WinStatus:status, ScenarioEventEndRound:event, Float:tmDelay) { // Log Event Round End
 	// Prevent this from getting called twice when restarting (bugfix)
 	static Float:lastendtime, Float:current_time, id
 	current_time = get_gametime()
@@ -2928,6 +2935,16 @@ public fw_ResetMaxSpeed_Post(id) { // Ham Reset MaxSpeed Post Forward
 
 	set_player_maxspeed(id)
 }
+public fw_PlayerHintMessageEx_Pre(id, const message[], Float:duration, bool:bDisplayIfPlayerDead, bool:bOverride)
+{
+	if (g_bBlockHintMessage)
+	{
+		SetHookChainReturn(ATYPE_BOOL, true)
+		return HC_SUPERCEDE
+	}
+
+	return HC_CONTINUE
+}
 public fw_UseStationary(entity, caller, activator, use_type) { // Ham Use Stationary Gun Forward
 	if(use_type == USE_USING && is_user_valid_connected(caller) && g_zombie[caller])
 		return HAM_SUPERCEDE; // Prevent zombies from using stationary guns
@@ -3128,7 +3145,7 @@ public fw_SetClientKeyValue(id, const infobuffer[], const key[]) { // Forward Se
 
 	return FMRES_IGNORED;
 }
-public fw_SetClientInfoName_Post(id) { // Forward Client User Info Changed -prevent players from changing models-
+public fw_SetClientInfoName_Post(const id, const szBuffer[], const szNewName[]) { // Forward Client User Info Changed -prevent players from changing models-
 	if(!is_user_valid_alive(id))
 		return;
 
@@ -5379,7 +5396,7 @@ public message_textmsg() { // Block some text messages
 	static textmsg[22]; get_msg_arg_string(2, textmsg, charsmax(textmsg))
 
 	if(equal(textmsg, "#Game_will_restart_in")) { // Game restarting, reset scores and call round end to balance the teams
-		logevent_round_end()
+		fw_RoundEnd_Post()
 		g_scorehumans = 0
 		g_scorezombies = 0
 	}
@@ -5437,6 +5454,20 @@ public message_teaminfo(msg_id, msg_dest) { // Team Switch (or player joining a 
 			}
 		}
 	}
+}
+
+public fw_MOTD_Msg(const msg_id, const dest, const player)
+{
+	if (g_bMOTD[player] && g_bBlockStartupMOTD)
+	{
+		if (get_msg_arg_int(1) == 1)
+		{
+			g_bMOTD[player] = false
+			return PLUGIN_HANDLED
+		}
+	}
+
+	return PLUGIN_CONTINUE
 }
 
 /*================================================================================
@@ -12826,7 +12857,7 @@ public set_player_light(id, const LightStyle[]) {
 
 	if(is_user_bot(id) || is_user_hltv(id))
 		return;
-
+	
 	message_begin(MSG_ONE_UNRELIABLE, SVC_LIGHTSTYLE, .player = id)
 	write_byte(0)
 	write_string(LightStyle)
